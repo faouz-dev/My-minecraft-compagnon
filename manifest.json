@@ -1,0 +1,49 @@
+{
+    "format_version": 2,
+    "header": {
+        "description": "A compagnon player for your survival",
+        "name": "My Compagnon",
+        "uuid": "7669ae5c-3929-4ed4-8b08-69a27b8acb3d",
+        "version": [
+            1,
+            0,
+            0
+        ],
+        "min_engine_version": [
+            1,
+            26,
+            30
+        ]
+    },
+    "modules": [
+        {
+            "description": "Example behavior pack module",
+            "type": "script",
+            "language": "Javascript",
+            "uuid": "bc3364fe-da93-4a08-967e-6a786e39368f",
+            "entry": "scripts/main.js",
+            "version": [
+                1,
+                0,
+                0
+            ]
+        }
+    ],
+    "dependencies": [
+        {
+            "module_name": "@minecraft/server",
+            "version": "2.9.0-beta"
+        },
+        {
+            "module_name": "@minecraft/server-gametest",
+            "version": "1.0.0-beta"
+        }
+    ],
+    "metadata": {
+        "authors": [
+            "Faouz-dev"
+        ],
+        "license": "MIT",
+        "url": "https://github.com/faouz-dev/"
+    }
+}

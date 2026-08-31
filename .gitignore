@@ -1,0 +1,5 @@
+.vscode
+node_modules
+scripts
+my-compagnon.mcpack
+package-lock.json
