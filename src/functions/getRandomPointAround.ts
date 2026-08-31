@@ -1,13 +1,11 @@
+import type { Vector3 } from "@minecraft/server";
+
 /**
  * Retourne un point aléatoire autour d'une position.
  *
- * @param {import("@minecraft/server").Vector3} center
- * @param {number} minDistance
- * @param {number} maxDistance
- * @returns {import("@minecraft/server").Vector3}
  */
 export function getRandomPointAround(
-  center,
+  center: Vector3,
   minDistance = 3,
   maxDistance = 10,
 ) {

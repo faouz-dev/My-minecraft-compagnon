@@ -3,12 +3,7 @@ import { spawnSimulatedPlayer } from "@minecraft/server-gametest";
 import { GameMode, Player } from "@minecraft/server";
 import { COMPAGNONS } from "../constants/Compagnons";
 
-/**
- *
- * @param {Player} player
- * @returns
- */
-export function createCompagnon(player) {
+export function createCompagnon(player: Player) {
   const compagnon = spawnSimulatedPlayer(
     { dimension: player.dimension, ...player.location },
     player.nameTag + "'s Compagnon",

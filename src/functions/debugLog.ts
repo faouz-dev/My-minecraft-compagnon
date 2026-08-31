@@ -1,10 +1,6 @@
 import { isDebug } from "../constants/isDebug";
 
-/**
- *
- * @param {string} message
- */
-export function debugLog(message) {
+export function debugLog(message: string) {
   if (message && isDebug) {
     console.log(message);
   }

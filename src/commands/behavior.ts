@@ -1,3 +1,4 @@
+import type { ForcedBehavior } from "../class/CompagnonManager";
 import { COMPAGNONS } from "../constants/Compagnons";
 import { initCommands } from "../functions/initCommand";
 
@@ -17,10 +18,7 @@ initCommands({
     if (isNaN(behavior)) return player.sendMessage(help_text);
     if (behavior < 0 || behavior > 3) return player.sendMessage(help_text);
 
-    /**
-     * @type {import("../class/CompagnonManager").ForcedBehavior}
-     */
-    let forced_behavior;
+    let forced_behavior: ForcedBehavior;
     switch (behavior) {
       case 0:
         forced_behavior = "default";

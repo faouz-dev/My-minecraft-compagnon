@@ -2,9 +2,8 @@ import { Container, EquipmentSlot, ItemStack } from "@minecraft/server";
 
 /**
  * Les différents usages possibles pour le Mainhand.
- *
- * @typedef {"combat" | "mining" | "woodcutting" | "farming"} ItemPurpose
  */
+export type ItemPurpose = "combat" | "mining" | "woodcutting" | "farming";
 
 /**
  * Score de puissance des équipements.
@@ -14,7 +13,7 @@ import { Container, EquipmentSlot, ItemStack } from "@minecraft/server";
  * Pour le Mainhand, les scores sont séparés par usage afin de
  * permettre de choisir l'outil le plus adapté à la tâche.
  *
- * @type {Object}
+ *
  */
 const EQUIPMENT_SCORES = {
   [EquipmentSlot.Head]: {
@@ -114,25 +113,18 @@ const EQUIPMENT_SCORES = {
 /**
  * Retourne le meilleur objet disponible dans l'inventaire
  * pour un slot d'équipement et un usage donné.
- *
- * @param {ItemStack|undefined} currentItem Objet actuellement équipé.
- * @param {Container} inventory Inventaire dans lequel rechercher.
- * @param {EquipmentSlot} slot Slot d'équipement ciblé.
- * @param {ItemPurpose} [purpose="combat"] Usage recherché pour le Mainhand.
- *
- * @returns {{
- *   shouldChange: boolean,
- *   currentItem?: ItemStack,
- *   bestItem?: ItemStack,
- *   index?: number
- * }}
  */
 export function checkforBestItem(
-  currentItem,
-  inventory,
-  slot,
-  purpose = "combat",
-) {
+  currentItem: ItemStack | undefined,
+  inventory: Container,
+  slot: EquipmentSlot,
+  purpose: ItemPurpose = "combat",
+): {
+  shouldChange: boolean;
+  currentItem?: ItemStack;
+  bestItem?: ItemStack;
+  index?: number;
+} {
   // @ts-ignore
   let scores = EQUIPMENT_SCORES[slot];
 
@@ -145,6 +137,7 @@ export function checkforBestItem(
 
   // Le Mainhand possède plusieurs catégories d'utilisation.
   if (slot === EquipmentSlot.Mainhand) {
+    //@ts-expect-error
     scores = scores[purpose];
 
     if (!scores) {
@@ -155,6 +148,7 @@ export function checkforBestItem(
     }
   }
 
+  //@ts-expect-error
   const currentScore = currentItem ? (scores[currentItem.typeId] ?? 0) : 0;
 
   let bestItem = currentItem;
@@ -166,6 +160,7 @@ export function checkforBestItem(
 
     if (!item) continue;
 
+    //@ts-expect-error
     const score = scores[item.typeId];
 
     if (score === undefined) continue;

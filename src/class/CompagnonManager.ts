@@ -11,92 +11,52 @@ import {
   System,
   EntityType,
   EntityTypes,
+  type Vector3,
 } from "@minecraft/server";
 import { getPlayerSkin, SimulatedPlayer } from "@minecraft/server-gametest";
 import { Vector2Utils, Vector3Utils } from "@minecraft/math";
 import { debugLog } from "../functions/debugLog";
 import { CompagnonDBManager } from "./CompagnonDBManager";
-import { checkforBestItem } from "../functions/checkforBestItem";
+import {
+  checkforBestItem,
+  type ItemPurpose,
+} from "../functions/checkforBestItem";
 import { FOOD_MOBS } from "../constants/foodMobs";
 import { getRandomPointAround } from "../functions/getRandomPointAround";
 
-/**
- * @typedef {"default"| "follow_player" | "kill_mobs_for_food" | "farm_in_champs"} ForcedBehavior
- */
+export type ForcedBehavior =
+  | "default"
+  | "follow_player"
+  | "kill_mobs_for_food"
+  | "farm_in_champs";
 
 export class CompagnonManager {
   // #region Variable Declaration
 
   // compagnon configuration properties
-  /**
-   * @type {Player}
-   */
-  #owner;
 
-  /**
-   * @type {SimulatedPlayer}
-   */
-  #compagnon;
-
-  /**
-   * @type {string|null}
-   */
-  #behavior = null;
-
-  /**
-   * @type {ForcedBehavior}
-   */
-  #forced_behavior = "default";
+  #owner: Player;
+  #compagnon: SimulatedPlayer;
+  #behavior: string | null = null;
+  #forced_behavior: ForcedBehavior = "default";
+  #shouldSleep: boolean = false;
 
   // targetting properties
-  /**
-   * @type {Entity|null}
-   */
-  #target_entity = null;
-
-  /**
-   * @type {Entity|null}
-   */
-  #target_item = null;
-
-  /**
-   * @type {Entity|null}
-   */
-  #ownerEntityTarget = null;
-
-  /**
-   * @type {import("@minecraft/server").Vector3|null}
-   */
-  #target_location = null;
-
-  /**
-   * @type {boolean}
-   */
-  #shouldSleep = false;
+  #target_entity: Entity | null = null;
+  #target_item: Entity | null = null;
+  #ownerEntityTarget: Entity | null = null;
+  #target_location: Vector3 | null = null;
 
   // Datas properties
-
-  /**
-   * @type {{lastPosition : import("@minecraft/server").Vector3, lastPositionTime : number}}
-   */
-
-  // @ts-ignore
-  #mouvement_datas = null;
-
-  /**
-   * @type {{checkpoint : import("@minecraft/server").Vector3|null, action: string|null}}
-   */
-  #farming_behavior_datas = { checkpoint: null, action: null };
-
-  /**
-   *
-   * @param {SimulatedPlayer} compagnon
-   * @param {Player} owner
-   */
+  #mouvement_datas!: { lastPosition: Vector3; lastPositionTime: number };
+  #farming_behavior_datas: {
+    checkpoint: Vector3 | null;
+    action: string | null;
+  } = { checkpoint: null, action: null };
 
   // #endregion
 
-  constructor(compagnon, owner) {
+  constructor(compagnon: SimulatedPlayer, owner: Player) {
     this.#compagnon = compagnon;
     this.#owner = owner;
 
@@ -136,12 +96,7 @@ export class CompagnonManager {
     }
   }
 
-  /**
-   *
-   * @param {import("@minecraft/server").Vector3} a
-   * @param {import("@minecraft/server").Vector3} b
-   */
-  #nearestFromCompagnon(a, b) {
+  #nearestFromCompagnon(a: Vector3, b: Vector3) {
     return (
       Vector3Utils.distance(a, this.#compagnon.location) -
       Vector3Utils.distance(b, this.#compagnon.location)
@@ -151,7 +106,7 @@ export class CompagnonManager {
   /**
    * @param {ForcedBehavior} behavior
    */
-  updateBehavior(behavior) {
+  updateBehavior(behavior: ForcedBehavior) {
     this.#forced_behavior = behavior;
     CompagnonDBManager.updateCompagnonData(this.#owner, {
       forced_behavior: behavior,
@@ -163,26 +118,16 @@ export class CompagnonManager {
    * @param {ForcedBehavior[]} behaviors
    * @returns
    */
-  #hasForcedBehavior(behaviors) {
+  #hasForcedBehavior(behaviors: ForcedBehavior[]) {
     return behaviors.includes(this.#forced_behavior);
   }
 
-  /**
-   *
-   * @returns {EntityInventoryComponent}
-   */
-  #getInventoryComponent() {
-    // @ts-ignore
-    return this.#compagnon.getComponent(EntityComponentTypes.Inventory);
+  #getInventoryComponent(): EntityInventoryComponent {
+    return this.#compagnon.getComponent(EntityComponentTypes.Inventory)!;
   }
 
-  /**
-   *
-   * @returns {EntityEquippableComponent}
-   */
-  #getEquipableComponent() {
-    // @ts-ignore
-    return this.#compagnon.getComponent(EntityComponentTypes.Equippable);
+  #getEquipableComponent(): EntityEquippableComponent {
+    return this.#compagnon.getComponent(EntityComponentTypes.Equippable)!;
   }
 
   /**
@@ -271,7 +216,12 @@ export class CompagnonManager {
     /**
      * @type {import("../functions/checkforBestItem").ItemPurpose[]}
      */
-    const hotbarConfiguration = ["combat", "woodcutting", "mining"];
+    const hotbarConfiguration = [
+      "combat",
+      "woodcutting",
+      "mining",
+    ] as ItemPurpose[];
+
     for (let i = 0; i < 3; i++) {
       const currentItem = inventoryComponent.container.getItem(i);
       const bestItem = checkforBestItem(
@@ -308,10 +258,16 @@ export class CompagnonManager {
     this.#armorUpdater();
   }
 
-  /**
-   * @param {{ type: "entity" | "location", entity?: Entity, location?: import("@minecraft/server").Vector3 } | Entity | import("@minecraft/server").Vector3} target
-   */
-  #move(target) {
+  #move(
+    target:
+      | {
+          type: "entity" | "location";
+          entity?: Entity;
+          location?: Vector3;
+        }
+      | Entity
+      | Vector3,
+  ) {
     const targetData =
       target && typeof target === "object" && "type" in target
         ? target
@@ -479,10 +435,7 @@ export class CompagnonManager {
     }
   }
 
-  /**
-   * @param {Entity|null} entity
-   */
-  setOwnerEntityTarget(entity) {
+  set ownerEntityTarget(entity: Entity | null) {
     if (!entity || !entity.isValid || entity === this.#owner) {
       this.#ownerEntityTarget = null;
       return;

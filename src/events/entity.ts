@@ -1,4 +1,4 @@
-import { EntityComponentTypes, system, System, world } from "@minecraft/server";
+import { EntityComponentTypes, world } from "@minecraft/server";
 import { COMPAGNONS } from "../constants/Compagnons";
 import { debugLog } from "../functions/debugLog";
 import { CompagnonDBManager } from "../class/CompagnonDBManager";
@@ -31,7 +31,7 @@ world.afterEvents.entityHitEntity.subscribe((event) => {
     const playerCompagnon = COMPAGNONS.get(damagingEntity.id);
     if (playerCompagnon && playerCompagnon.compagnon.id !== hitEntity.id) {
       debugLog("Player has compagnon");
-      playerCompagnon.setOwnerEntityTarget(hitEntity);
+      playerCompagnon.ownerEntityTarget = hitEntity;
     }
   }
 });

@@ -13,7 +13,7 @@ const external = [
 
 esbuild
   .build({
-    entryPoints: ["src/index.js"],
+    entryPoints: ["src/index.ts"],
     outfile: "scripts/main.js",
     bundle: true,
     minify: true,

@@ -1,20 +1,17 @@
 import { EntityComponentTypes, Player, world } from "@minecraft/server";
 import { SimulatedPlayer } from "@minecraft/server-gametest";
 
-/**
- * @typedef {Object} CompagnonProperty
- * @property {number} health
- * @property {string} name
- * @property {import("./CompagnonManager").ForcedBehavior} forced_behavior
- */
+interface CompagnonProperty {
+  health: number;
+  name: string;
+  forced_behavior: import("./CompagnonManager").ForcedBehavior;
+}
 
 export class CompagnonDBManager {
-  /**
-   *
-   * @param {Player} player
-   * @param {Partial<CompagnonProperty>} property
-   */
-  static updateCompagnonData(player, property) {
+  static updateCompagnonData(
+    player: Player,
+    property: Partial<CompagnonProperty>,
+  ) {
     const currentProperty = CompagnonDBManager.getCompagnon(player) ?? {};
 
     Object.assign(currentProperty, property);
@@ -25,40 +22,21 @@ export class CompagnonDBManager {
     );
   }
 
-  /**
-   * @param {Player} player
-   *
-   * @returns {boolean}
-   */
-  static hasCompagnon(player) {
+  static hasCompagnon(player: Player): boolean {
     return world.getDynamicProperty(`compagnon_${player.id}`) !== undefined;
   }
 
-  /**
-   * @param {Player} player
-   *
-   * @returns {CompagnonProperty | undefined}
-   */
-  static getCompagnon(player) {
+  static getCompagnon(player: Player): CompagnonProperty | undefined {
     return CompagnonDBManager.hasCompagnon(player)
-      ? // @ts-ignore
-        JSON.parse(world.getDynamicProperty(`compagnon_${player.id}`))
+      ? JSON.parse(world.getDynamicProperty(`compagnon_${player.id}`) as string)
       : undefined;
   }
 
-  /**
-   *
-   * @param {Player} player
-   */
-  static removeCompagnonData(player) {
+  static removeCompagnonData(player: Player) {
     world.setDynamicProperty(`compagnon_${player.id}`, undefined);
   }
 
-  /**
-   * @param {Player} player
-   * @param {SimulatedPlayer} compagnon
-   */
-  static createCompagnonData(player, compagnon) {
+  static createCompagnonData(player: Player, compagnon: SimulatedPlayer) {
     CompagnonDBManager.updateCompagnonData(player, {
       name: compagnon.name,
       health: compagnon.getComponent(EntityComponentTypes.Health)?.currentValue,
