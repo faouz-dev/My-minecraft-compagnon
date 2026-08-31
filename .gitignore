@@ -1,5 +1,5 @@
 .vscode
 node_modules
 scripts
-my-compagnon.mcpack
+*.mcpack
 package-lock.json
