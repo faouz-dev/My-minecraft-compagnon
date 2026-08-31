@@ -32,11 +32,11 @@
     "dependencies": [
         {
             "module_name": "@minecraft/server",
-            "version": "2.9.0-beta"
+            "version": "beta"
         },
         {
             "module_name": "@minecraft/server-gametest",
-            "version": "1.0.0-beta"
+            "version": "beta"
         }
     ],
     "metadata": {

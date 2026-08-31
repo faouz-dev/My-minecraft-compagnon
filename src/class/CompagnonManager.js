@@ -12,13 +12,9 @@ import {
   EntityType,
   EntityTypes,
 } from "@minecraft/server";
-import { SimulatedPlayer } from "@minecraft/server-gametest";
-import { Vector3Utils } from "@minecraft/math";
+import { getPlayerSkin, SimulatedPlayer } from "@minecraft/server-gametest";
+import { Vector2Utils, Vector3Utils } from "@minecraft/math";
 import { debugLog } from "../functions/debugLog";
-import {
-  MinecraftDimensionTypes,
-  MinecraftItemTypes,
-} from "@minecraft/vanilla-data";
 import { CompagnonDBManager } from "./CompagnonDBManager";
 import { checkforBestItem } from "../functions/checkforBestItem";
 import { FOOD_MOBS } from "../constants/foodMobs";
@@ -29,6 +25,9 @@ import { getRandomPointAround } from "../functions/getRandomPointAround";
  */
 
 export class CompagnonManager {
+  // #region Variable Declaration
+
+  // compagnon configuration properties
   /**
    * @type {Player}
    */
@@ -49,6 +48,7 @@ export class CompagnonManager {
    */
   #forced_behavior = "default";
 
+  // targetting properties
   /**
    * @type {Entity|null}
    */
@@ -70,6 +70,13 @@ export class CompagnonManager {
   #target_location = null;
 
   /**
+   * @type {boolean}
+   */
+  #shouldSleep = false;
+
+  // Datas properties
+
+  /**
    * @type {{lastPosition : import("@minecraft/server").Vector3, lastPositionTime : number}}
    */
 
@@ -86,6 +93,9 @@ export class CompagnonManager {
    * @param {SimulatedPlayer} compagnon
    * @param {Player} owner
    */
+
+  // #endregion
+
   constructor(compagnon, owner) {
     this.#compagnon = compagnon;
     this.#owner = owner;
@@ -106,10 +116,24 @@ export class CompagnonManager {
   }
 
   #config() {
+    // Set Skin
+    const playerSkin = getPlayerSkin(this.#owner);
+    this.#compagnon.setSkin(playerSkin);
+    debugLog(`[Config] - Compagnon skin set`);
+
+    // Initialise Values
     this.#mouvement_datas = {
       lastPosition: this.#compagnon.location,
       lastPositionTime: 0,
     };
+  }
+
+  #recurentsCheck() {
+    if (this.#owner.isSleeping) {
+      this.#shouldSleep = true;
+    } else {
+      this.#shouldSleep = false;
+    }
   }
 
   /**
@@ -350,6 +374,17 @@ export class CompagnonManager {
 
   // #region - Compagnon behavior
 
+  /**
+   *
+   * @returns {boolean}
+   */
+  #sleepBehavior() {
+    debugLog("[SleepBehavior] - Compagnon need to sleep");
+
+    // TODO : Feed a bed nearest you and sleep
+    return false;
+  }
+
   #farmingMobsBehavior() {
     const availableStackItem = this.#compagnon.dimension
       .getEntities({
@@ -482,7 +517,7 @@ export class CompagnonManager {
         this.#ownerEntityTarget.location,
       );
 
-      if (distanceBetweenOwnerTarget <= 5) {
+      if (distanceBetweenOwnerTarget <= 10) {
         if (distanceBetweenOwnerTarget > 3) {
           this.#compagnon.navigateToEntity(this.#ownerEntityTarget);
           return;
@@ -500,9 +535,8 @@ export class CompagnonManager {
     const hostileMobs = this.#compagnon.dimension
       .getEntities({
         location: this.#compagnon.location,
-        maxDistance: 5,
+        maxDistance: 8,
         families: ["monster"],
-        excludeFamilies: ["player"],
       })
       .sort((a, b) => this.#nearestFromCompagnon(a.location, b.location));
 
@@ -519,9 +553,11 @@ export class CompagnonManager {
           return;
         }
 
-        this.#compagnon.selectedSlotIndex = 0;
+        if (this.#compagnon.selectedSlotIndex !== 0)
+          this.#compagnon.selectedSlotIndex = 0;
         this.#compagnon.stopMoving();
         this.#compagnon.attackEntity(target);
+        this.#compagnon.lookAtEntity(target);
         return;
       }
     }
@@ -629,6 +665,13 @@ export class CompagnonManager {
   // }
 
   compagnonBehavior() {
+    // Recurent Check
+    this.#recurentsCheck();
+
+    // Behavior Management
+
+    if (this.#sleepBehavior()) return;
+
     this.#defaultBehavior();
   }
 }
