@@ -12,6 +12,7 @@ import {
   EntityType,
   EntityTypes,
   type Vector3,
+  BlockVolumeBase,
 } from "@minecraft/server";
 import { getPlayerSkin, SimulatedPlayer } from "@minecraft/server-gametest";
 import { Vector2Utils, Vector3Utils } from "@minecraft/math";
@@ -23,6 +24,9 @@ import {
 } from "../functions/checkforBestItem";
 import { FOOD_MOBS } from "../constants/foodMobs";
 import { getRandomPointAround } from "../functions/getRandomPointAround";
+import { MinecraftBlockTypes } from "@minecraft/vanilla-data";
+import { createCube } from "../functions/createCube";
+import { isBedOccupied } from "../functions/isBedOccuped";
 
 export type ForcedBehavior =
   | "default"
@@ -49,10 +53,15 @@ export class CompagnonManager {
 
   // Datas properties
   #mouvement_datas!: { lastPosition: Vector3; lastPositionTime: number };
+
   #farming_behavior_datas: {
     checkpoint: Vector3 | null;
     action: string | null;
   } = { checkpoint: null, action: null };
+
+  #sleep_behavior_data: { noBedFoundMessageCooldown: number } = {
+    noBedFoundMessageCooldown: 0,
+  };
 
   // #endregion
 
@@ -330,15 +339,69 @@ export class CompagnonManager {
 
   // #region - Compagnon behavior
 
-  /**
-   *
-   * @returns {boolean}
-   */
-  #sleepBehavior() {
-    debugLog("[SleepBehavior] - Compagnon need to sleep");
+  #sleepBehavior(): boolean {
+    if (!this.#shouldSleep) return false;
 
-    // TODO : Feed a bed nearest you and sleep
-    return false;
+    if (!this.#compagnon.isSleeping) {
+      debugLog("[SleepBehavior] - Compagnon need to sleep");
+      const nearestBedArroundPlayer = this.#owner.dimension.getBlocks(
+        createCube(this.#owner.location, 20),
+        {
+          includeTypes: [MinecraftBlockTypes.Bed],
+        },
+      );
+      const nearestBedArroundBot = this.#compagnon.dimension.getBlocks(
+        createCube(this.#compagnon.location, 20),
+        {
+          includeTypes: [MinecraftBlockTypes.Bed],
+        },
+      );
+
+      let nearestAvailableBed = null;
+
+      for (const bed of nearestBedArroundBot.getBlockLocationIterator()) {
+        const block = this.#compagnon.dimension.getBlock(bed);
+        if (block?.typeId !== MinecraftBlockTypes.Bed) continue;
+        const isOccuped = isBedOccupied(block);
+        if (isOccuped) continue;
+        debugLog("[SleepBehavior] - Compagnon locate a bed nearest him");
+        nearestAvailableBed = block;
+        break;
+      }
+
+      if (!nearestAvailableBed) {
+        for (const bed of nearestBedArroundPlayer.getBlockLocationIterator()) {
+          const block = this.#owner.dimension.getBlock(bed);
+          if (block?.typeId !== MinecraftBlockTypes.Bed) continue;
+          const isOccuped = isBedOccupied(block);
+          if (isOccuped) continue;
+          debugLog("[SleepBehavior] - Compagnon locate a bed nearest player");
+          nearestAvailableBed = block;
+          break;
+        }
+      }
+
+      if (!nearestAvailableBed) {
+        debugLog("[SleepBehavior] - Compagnon has no bed around");
+        // Attendre 10 Seconde avant de l'avertir encore une fois
+        if (this.#sleep_behavior_data.noBedFoundMessageCooldown == 0) {
+          this.#owner.sendMessage("You need to build a bed for your compagnon");
+          this.#sleep_behavior_data.noBedFoundMessageCooldown = 20 * 10;
+        } else {
+          this.#sleep_behavior_data.noBedFoundMessageCooldown =
+            this.#sleep_behavior_data.noBedFoundMessageCooldown - 1;
+        }
+      } else {
+        debugLog("[SleepBehavior] - Compagnon Found A bed");
+
+        this.#compagnon.teleport(nearestAvailableBed);
+        this.#compagnon.interactWithBlock(nearestAvailableBed);
+      }
+    } else {
+      debugLog("[SleepBehavior] - Compagnon is sleeping");
+    }
+    // Return true to break all other logique on other behavior
+    return true;
   }
 
   #farmingMobsBehavior() {
@@ -445,6 +508,9 @@ export class CompagnonManager {
   }
 
   #defaultBehavior() {
+    // Priority 1 : Sleep if owner sleep
+    if (this.#sleepBehavior()) return;
+
     const nearbyDroppedItems = this.#compagnon.dimension
       .getEntities({
         location: this.#compagnon.location,
@@ -620,10 +686,6 @@ export class CompagnonManager {
   compagnonBehavior() {
     // Recurent Check
     this.#recurentsCheck();
-
-    // Behavior Management
-
-    if (this.#sleepBehavior()) return;
 
     this.#defaultBehavior();
   }

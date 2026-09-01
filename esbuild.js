@@ -16,7 +16,7 @@ esbuild
     entryPoints: ["src/index.ts"],
     outfile: "scripts/main.js",
     bundle: true,
-    minify: true,
+    minify: false,
     format: "esm",
     external,
   })
