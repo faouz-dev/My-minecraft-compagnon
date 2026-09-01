@@ -28,6 +28,8 @@ import { getRandomPointAround } from "../functions/getRandomPointAround";
 import { MinecraftBlockTypes } from "@minecraft/vanilla-data";
 import { createCube } from "../functions/createCube";
 import { isBedOccupied } from "../functions/isBedOccuped";
+import { checkForBestFood, FOOD_SCORES } from "../functions/checkForBestFood";
+import { isDebug } from "../constants/isDebug";
 
 export type ForcedBehavior =
   | "default"
@@ -36,12 +38,11 @@ export type ForcedBehavior =
   | "farm_in_champs";
 
 export class CompagnonManager {
+  //=================================================
   // #region Variable Declaration
+  //=================================================
 
   // compagnon configuration properties
-
-  // private owner: Player;
-  // private compagnon: SimulatedPlayer;
   private behavior: string | null = null;
   private _forced_behavior: ForcedBehavior = "default";
   private shouldSleep: boolean = false;
@@ -63,8 +64,11 @@ export class CompagnonManager {
   private sleep_behavior_data: { noBedFoundMessageCooldown: number } = {
     noBedFoundMessageCooldown: 0,
   };
+  private eat_behavior_data: { startEating: boolean } = { startEating: false };
 
-  // #endregion
+  //=================================================
+  // #endregion Variable Declaration
+  //==================================================
 
   constructor(
     private readonly _compagnon: SimulatedPlayer,
@@ -447,7 +451,7 @@ export class CompagnonManager {
       .filter((e) => e.hasComponent(EntityComponentTypes.Item))
       .sort((a, b) => this.nearestFromCompagnon(a.location, b.location));
 
-    if ((nearbyDroppedItems.length = 0)) return false;
+    if (nearbyDroppedItems.length == 0) return false;
     debugLog(
       "[GetNearestDropedItemBehavior] - Compagnon Found " +
         nearbyDroppedItems.length +
@@ -566,6 +570,91 @@ export class CompagnonManager {
     return true;
   }
 
+  private shouldEatBehavior(
+    {
+      shouldEatAt,
+      ShouldEatUntil,
+    }: { shouldEatAt: number; ShouldEatUntil: number } = {
+      shouldEatAt: 6,
+      ShouldEatUntil: 20,
+    },
+  ): boolean {
+    const hungerComponent = this._compagnon.getComponent(
+      EntityComponentTypes.Hunger,
+    )!;
+    if (
+      hungerComponent.currentValue > shouldEatAt &&
+      !this.eat_behavior_data.startEating
+    )
+      return false;
+
+    if (hungerComponent.currentValue >= ShouldEatUntil) {
+      debugLog("[ShouldEatBehavior] - Compagnon reach acceptable value");
+      this.eat_behavior_data.startEating = false;
+      return false;
+    }
+    const inventoryContainer = this.getInventoryComponent();
+
+    if (this.eat_behavior_data.startEating == true) {
+      const item = inventoryContainer.container.getItem(8);
+      if (!item) {
+        debugLog("[ShouldEatBehavior] - Compagnon food finished in slot 8");
+        this.eat_behavior_data.startEating = false;
+      } else if (!Object.keys(FOOD_SCORES).includes(item.typeId)) {
+        debugLog(
+          "[ShouldEatBehavior] - Compagnon item in slot 8 is not a food",
+        );
+        this.eat_behavior_data.startEating = false;
+      } else {
+        debugLog("[ShouldEatBehavior] - Compagnon is eating");
+        this._compagnon.useItemInSlot(8);
+      }
+    } else {
+      const bestFound = checkForBestFood(
+        inventoryContainer.container,
+        false,
+        false,
+      );
+
+      if (!bestFound.foundFood) {
+        debugLog("[ShouldEatBehavior] - Compagnon has no food");
+        return false;
+      }
+
+      if (bestFound.slotIndex! !== 8) {
+        inventoryContainer.container.swapItems(
+          8,
+          bestFound.slotIndex!,
+          inventoryContainer.container,
+        );
+      }
+      debugLog("[ShouldEatBehavior] - Compagnon swipped found 0p splot 8");
+      this.eat_behavior_data.startEating = true;
+    }
+
+    return true;
+  }
+
+  private shouldHealBehavior(
+    props: { acceptableHealth: number; healAt: number } = {
+      acceptableHealth: 20,
+      healAt: 6,
+    },
+  ): boolean {
+    const healthComponent = this._compagnon.getComponent(
+      EntityComponentTypes.Health,
+    )!;
+
+    if (healthComponent.currentValue >= props.acceptableHealth) return false;
+    debugLog("[ShouldHealBehavior] - Compagnon need to Heal");
+
+    // priority 1 eat food
+    if (!this.shouldEatBehavior({ shouldEatAt: 19, ShouldEatUntil: 20 }))
+      return false;
+
+    return true;
+  }
+
   private farmingMobsBehavior() {
     const availableStackItem = this._compagnon.dimension
       .getEntities({
@@ -664,16 +753,22 @@ export class CompagnonManager {
     // Priority 1 : Sleep if owner sleep
     if (this.sleepBehavior()) return;
 
-    // Priority 2 : Get dropped item in range 2 from compagnon
+    // Priority 2 : Heal if owner is low
+    if (this.shouldHealBehavior()) return;
+
+    // Priority 3 : Eat if owner is low
+    if (this.shouldEatBehavior({ shouldEatAt: 6, ShouldEatUntil: 20 })) return;
+
+    // Priority 4 : Get dropped item in range 2 from compagnon
     if (this.getNearestDropedItemBehavior({ maxDistance: 2 })) return;
 
-    // Priority 3 : Attack owner target if exists
+    // Priority 5 : Attack owner target if exists
     if (this.shouldAttackOwnerTargetBehavior({ shouldIgnoreRange: 10 })) return;
 
-    // Priority 4 : Attack nearest monster mob
+    // Priority 6 : Attack nearest monster mob
     if (this.shouldAttackNearestMonsterMobs({ maxDistance: 8 })) return;
 
-    // Priority 5 : Follow owner
+    // Priority 7 : Follow owner
     if (this.shouldfollowPlayerBehavior()) return;
   }
 
@@ -763,6 +858,21 @@ export class CompagnonManager {
   // }
 
   compagnonBehavior() {
+    if (isDebug) {
+      const health = this._compagnon.getComponent(
+        EntityComponentTypes.Health,
+      )!.currentValue;
+      const hunger = this._compagnon.getComponent(
+        EntityComponentTypes.Hunger,
+      )!.currentValue;
+
+      const icon = health > 0 && hunger > 0 ? "§a❤" : "§c✖";
+      const healthColor = health <= 6 ? "§c" : health <= 12 ? "§e" : "§a";
+      const hungerColor = hunger <= 3 ? "§c" : hunger <= 8 ? "§e" : "§a";
+
+      this._compagnon.nameTag = `${icon} §7${this.compagnon.name} §8| ${healthColor}${health}§8 | ${hungerColor}${hunger}`;
+    }
+
     // Recurent Check
     this.recurentsCheck();
 
