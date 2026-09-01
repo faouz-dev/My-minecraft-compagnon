@@ -3,7 +3,7 @@ const fs = require("fs");
 const path = require("path");
 const archiver = require("archiver");
 
-const PACK_NAME = "my-compagnon";
+const PACK_NAME = "my-compagnon-v26.4X";
 const ROOT_DIR = __dirname;
 const OUTPUT = path.join(ROOT_DIR, `${PACK_NAME}.mcpack`);
 
