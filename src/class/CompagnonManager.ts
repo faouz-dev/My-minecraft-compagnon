@@ -15,7 +15,11 @@ import {
   BlockVolumeBase,
   type EntityQueryOptions,
 } from "@minecraft/server";
-import { getPlayerSkin, SimulatedPlayer } from "@minecraft/server-gametest";
+import {
+  getPlayerSkin,
+  LookDuration,
+  SimulatedPlayer,
+} from "@minecraft/server-gametest";
 import { Vector2Utils, Vector3Utils } from "@minecraft/math";
 import { debugLog } from "../functions/debugLog";
 import { CompagnonDBManager } from "./CompagnonDBManager";
@@ -30,6 +34,8 @@ import { createCube } from "../functions/createCube";
 import { isBedOccupied } from "../functions/isBedOccuped";
 import { checkForBestFood, FOOD_SCORES } from "../functions/checkForBestFood";
 import { isDebug } from "../constants/isDebug";
+import { safestDirectionFromMob } from "../functions/safestDirectionFromMob";
+import { roundDirection } from "../functions/roundDirection";
 
 export type ForcedBehavior =
   | "default"
@@ -635,10 +641,38 @@ export class CompagnonManager {
     return true;
   }
 
+  private shouldAvoidMobsBehavior(
+    props: { maxDistance: number } = { maxDistance: 3 },
+  ): boolean {
+    const { maxDistance } = props;
+
+    const nearestMonster = this._compagnon.dimension.getEntities({
+      location: this._compagnon.location,
+      maxDistance: maxDistance,
+      families: ["monster"],
+    });
+
+    if (nearestMonster.length == 0) return false;
+    if (!nearestMonster[0].isValid) return false;
+
+    debugLog("[ShouldAvoidMobsBehavior] - Compagnon have to avoid mobs");
+    const safestDirection = safestDirectionFromMob(
+      nearestMonster[0].location,
+      this._compagnon.location,
+      this._compagnon.dimension,
+    );
+
+    if (!safestDirection) return false;
+    debugLog("[safestDirecction] - Compagnon is moving to safest direction");
+    this._compagnon.move(safestDirection.x, safestDirection.z, 1);
+
+    return true;
+  }
+
   private shouldHealBehavior(
-    props: { acceptableHealth: number; healAt: number } = {
+    props: { acceptableHealth: number; critiqueProtectionAt: number } = {
       acceptableHealth: 20,
-      healAt: 6,
+      critiqueProtectionAt: 6,
     },
   ): boolean {
     const healthComponent = this._compagnon.getComponent(
@@ -649,10 +683,15 @@ export class CompagnonManager {
     debugLog("[ShouldHealBehavior] - Compagnon need to Heal");
 
     // priority 1 eat food
-    if (!this.shouldEatBehavior({ shouldEatAt: 19, ShouldEatUntil: 20 }))
-      return false;
+    if (this.shouldEatBehavior({ shouldEatAt: 19, ShouldEatUntil: 20 }))
+      return true;
 
-    return true;
+    //priority 2 avoid mob if no found
+    if (healthComponent.currentValue <= props.critiqueProtectionAt) {
+      if (this.shouldAvoidMobsBehavior({ maxDistance: 3 })) return true;
+    }
+
+    return false;
   }
 
   private farmingMobsBehavior() {
@@ -859,6 +898,10 @@ export class CompagnonManager {
 
   compagnonBehavior() {
     if (isDebug) {
+      this._compagnon
+        .getComponent(EntityComponentTypes.Health)!
+        .setCurrentValue(4);
+
       const health = this._compagnon.getComponent(
         EntityComponentTypes.Health,
       )!.currentValue;
