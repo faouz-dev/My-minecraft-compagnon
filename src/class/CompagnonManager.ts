@@ -13,6 +13,7 @@ import {
   EntityTypes,
   type Vector3,
   BlockVolumeBase,
+  type EntityQueryOptions,
 } from "@minecraft/server";
 import { getPlayerSkin, SimulatedPlayer } from "@minecraft/server-gametest";
 import { Vector2Utils, Vector3Utils } from "@minecraft/math";
@@ -75,6 +76,19 @@ export class CompagnonManager {
     this.config();
   }
 
+  //======================================================
+  // #region Getters and Setters
+  //======================================================
+
+  set ownerEntityTarget(entity: Entity | null) {
+    if (!entity || !entity.isValid || entity === this._owner) {
+      this._ownerEntityTarget = null;
+      return;
+    }
+
+    this._ownerEntityTarget = entity;
+  }
+
   get compagnon() {
     return this._compagnon;
   }
@@ -86,6 +100,10 @@ export class CompagnonManager {
   get owner() {
     return this._owner;
   }
+
+  //======================================================
+  // #endregion Getters and Setters
+  //======================================================
 
   private config() {
     // Set Skin
@@ -415,6 +433,139 @@ export class CompagnonManager {
     return true;
   }
 
+  /**
+   * @description Check if Exist an nearest droped item and take it
+   */
+  private getNearestDropedItemBehavior(
+    options: Pick<EntityQueryOptions, "maxDistance"> = { maxDistance: 2 },
+  ): boolean {
+    const nearbyDroppedItems = this._compagnon.dimension
+      .getEntities({
+        location: this._compagnon.location,
+        ...options,
+      })
+      .filter((e) => e.hasComponent(EntityComponentTypes.Item))
+      .sort((a, b) => this.nearestFromCompagnon(a.location, b.location));
+
+    if ((nearbyDroppedItems.length = 0)) return false;
+    debugLog(
+      "[GetNearestDropedItemBehavior] - Compagnon Found " +
+        nearbyDroppedItems.length +
+        " item(s) in range " +
+        options.maxDistance,
+    );
+    this.target_item = nearbyDroppedItems[0];
+
+    if (!this.target_item || !this.target_item.isValid) {
+      this.target_item = null;
+      debugLog("[GetNearestDropedItemBehavior] - Compagnon can't find item");
+      return false;
+    }
+    debugLog("[GetNearestDropedItemBehavior] - Compagnon found item");
+    this._compagnon.navigateToEntity(this.target_item);
+    return true;
+  }
+
+  /**
+   * @description - Check if the owner is attacking a target and attack if exists
+   */
+  private shouldAttackOwnerTargetBehavior(
+    {
+      shouldIgnoreRange,
+    }: {
+      shouldIgnoreRange: number;
+    } = { shouldIgnoreRange: 10 },
+  ): boolean {
+    if (!this._ownerEntityTarget) return false;
+    if (!this._ownerEntityTarget.isValid) {
+      debugLog("[ShouldAttackOwnerTargetBehavior] - Owner target is invalid");
+      this._ownerEntityTarget = null;
+      return false;
+    }
+    const distanceBetweenOwnerTarget = Vector3Utils.distance(
+      this._compagnon.location,
+      this._ownerEntityTarget.location,
+    );
+
+    if (distanceBetweenOwnerTarget > shouldIgnoreRange) {
+      debugLog("[ShouldAttackOwnerTargetBehavior] - Owner target is too far");
+      this._ownerEntityTarget = null;
+      return false;
+    }
+    if (distanceBetweenOwnerTarget > 3) {
+      this._compagnon.navigateToEntity(this._ownerEntityTarget);
+    } else {
+      this._compagnon.selectedSlotIndex = 0;
+      this._compagnon.stopMoving();
+      this._compagnon.attackEntity(this._ownerEntityTarget);
+    }
+    return true;
+  }
+
+  private shouldAttackNearestMonsterMobs(
+    options: Pick<EntityQueryOptions, "maxDistance"> = { maxDistance: 10 },
+  ): boolean {
+    const hostileMobs = this._compagnon.dimension
+      .getEntities({
+        location: this._compagnon.location,
+        maxDistance: options.maxDistance,
+        families: ["monster"],
+      })
+      .sort((a, b) => this.nearestFromCompagnon(a.location, b.location));
+
+    if (hostileMobs.length == 0) false;
+    const target = hostileMobs[0];
+    if (!target || !target.isValid) return false;
+    const distanceBetweenHostile = Vector3Utils.distance(
+      this._compagnon.location,
+      target.location,
+    );
+
+    if (distanceBetweenHostile > options.maxDistance!) {
+      debugLog("[ShouldAttackNearestMonsterMobs] - Hostile mob is too far");
+      return false;
+    }
+    if (distanceBetweenHostile > 3) {
+      debugLog(
+        "[ShouldAttackNearestMonsterMobs] - Compagnon is navigating to hostile mob",
+      );
+      this._compagnon.navigateToEntity(target);
+    } else {
+      debugLog("[ShouldAttackNearestMonsterMobs] - Compagnon is attacking");
+      if (this._compagnon.selectedSlotIndex !== 0)
+        this._compagnon.selectedSlotIndex = 0;
+      this._compagnon.stopMoving();
+      this._compagnon.attackEntity(target);
+      this._compagnon.lookAtEntity(target);
+    }
+
+    return true;
+  }
+
+  /**
+   * @description - Check if the compagnon can follow player and follow
+   */
+  private shouldfollowPlayerBehavior(): boolean {
+    if (!this._owner.isValid) return false;
+    const distanceBetweenOwner = Vector3Utils.distance(
+      this._compagnon.location,
+      this._owner.location,
+    );
+
+    if (distanceBetweenOwner > 15) {
+      this._compagnon.teleport(this._owner.location);
+    }
+
+    if (distanceBetweenOwner > 3 && distanceBetweenOwner < 15) {
+      this._compagnon.navigateToEntity(this._owner);
+    } else {
+      this._compagnon.stopMoving();
+      this._compagnon.lookAtEntity(this._owner);
+    }
+
+    return true;
+  }
+
   private farmingMobsBehavior() {
     const availableStackItem = this._compagnon.dimension
       .getEntities({
@@ -509,104 +660,21 @@ export class CompagnonManager {
     }
   }
 
-  set ownerEntityTarget(entity: Entity | null) {
-    if (!entity || !entity.isValid || entity === this._owner) {
-      this._ownerEntityTarget = null;
-      return;
-    }
-
-    this._ownerEntityTarget = entity;
-  }
-
   private defaultBehavior() {
     // Priority 1 : Sleep if owner sleep
     if (this.sleepBehavior()) return;
 
-    const nearbyDroppedItems = this._compagnon.dimension
-      .getEntities({
-        location: this._compagnon.location,
-        maxDistance: 2,
-      })
-      .filter((e) => e.hasComponent(EntityComponentTypes.Item))
-      .sort((a, b) => this.nearestFromCompagnon(a.location, b.location));
+    // Priority 2 : Get dropped item in range 2 from compagnon
+    if (this.getNearestDropedItemBehavior({ maxDistance: 2 })) return;
 
-    if (nearbyDroppedItems.length > 0) {
-      this.target_item = nearbyDroppedItems[0];
+    // Priority 3 : Attack owner target if exists
+    if (this.shouldAttackOwnerTargetBehavior({ shouldIgnoreRange: 10 })) return;
 
-      if (!this.target_item || !this.target_item.isValid) {
-        this.target_item = null;
-      } else {
-        this._compagnon.navigateToEntity(this.target_item);
-        return;
-      }
-    }
+    // Priority 4 : Attack nearest monster mob
+    if (this.shouldAttackNearestMonsterMobs({ maxDistance: 8 })) return;
 
-    if (this._ownerEntityTarget && this._ownerEntityTarget.isValid) {
-      const distanceBetweenOwnerTarget = Vector3Utils.distance(
-        this._compagnon.location,
-        this._ownerEntityTarget.location,
-      );
-
-      if (distanceBetweenOwnerTarget <= 10) {
-        if (distanceBetweenOwnerTarget > 3) {
-          this._compagnon.navigateToEntity(this._ownerEntityTarget);
-          return;
-        }
-
-        this._compagnon.selectedSlotIndex = 0;
-        this._compagnon.stopMoving();
-        this._compagnon.attackEntity(this._ownerEntityTarget);
-        return;
-      }
-
-      this._ownerEntityTarget = null;
-    }
-
-    const hostileMobs = this._compagnon.dimension
-      .getEntities({
-        location: this._compagnon.location,
-        maxDistance: 8,
-        families: ["monster"],
-      })
-      .sort((a, b) => this.nearestFromCompagnon(a.location, b.location));
-
-    if (hostileMobs.length > 0) {
-      const target = hostileMobs[0];
-      const distanceBetweenHostile = Vector3Utils.distance(
-        this._compagnon.location,
-        target.location,
-      );
-
-      if (distanceBetweenHostile <= 5) {
-        if (distanceBetweenHostile > 3) {
-          this._compagnon.navigateToEntity(target);
-          return;
-        }
-
-        if (this._compagnon.selectedSlotIndex !== 0)
-          this._compagnon.selectedSlotIndex = 0;
-        this._compagnon.stopMoving();
-        this._compagnon.attackEntity(target);
-        this._compagnon.lookAtEntity(target);
-        return;
-      }
-    }
-
-    const distanceBetweenOwner = Vector3Utils.distance(
-      this._compagnon.location,
-      this._owner.location,
-    );
-
-    if (distanceBetweenOwner > 15) {
-      this._compagnon.teleport(this._owner.location);
-    }
-
-    if (distanceBetweenOwner > 3 && distanceBetweenOwner < 15) {
-      this._compagnon.navigateToEntity(this._owner);
-    } else {
-      this._compagnon.stopMoving();
-      this._compagnon.lookAtEntity(this._owner);
-    }
+    // Priority 5 : Follow owner
+    if (this.shouldfollowPlayerBehavior()) return;
   }
 
   // ====================================================================
