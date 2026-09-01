@@ -39,76 +39,82 @@ export class CompagnonManager {
 
   // compagnon configuration properties
 
-  #owner: Player;
-  #compagnon: SimulatedPlayer;
-  #behavior: string | null = null;
-  #forced_behavior: ForcedBehavior = "default";
-  #shouldSleep: boolean = false;
+  // private owner: Player;
+  // private compagnon: SimulatedPlayer;
+  private behavior: string | null = null;
+  private _forced_behavior: ForcedBehavior = "default";
+  private shouldSleep: boolean = false;
 
   // targetting properties
-  #target_entity: Entity | null = null;
-  #target_item: Entity | null = null;
-  #ownerEntityTarget: Entity | null = null;
-  #target_location: Vector3 | null = null;
+  private target_entity: Entity | null = null;
+  private target_item: Entity | null = null;
+  private _ownerEntityTarget: Entity | null = null;
+  private target_location: Vector3 | null = null;
 
   // Datas properties
-  #mouvement_datas!: { lastPosition: Vector3; lastPositionTime: number };
+  private mouvement_datas!: { lastPosition: Vector3; lastPositionTime: number };
 
-  #farming_behavior_datas: {
+  private farming_behavior_datas: {
     checkpoint: Vector3 | null;
     action: string | null;
   } = { checkpoint: null, action: null };
 
-  #sleep_behavior_data: { noBedFoundMessageCooldown: number } = {
+  private sleep_behavior_data: { noBedFoundMessageCooldown: number } = {
     noBedFoundMessageCooldown: 0,
   };
 
   // #endregion
 
-  constructor(compagnon: SimulatedPlayer, owner: Player) {
-    this.#compagnon = compagnon;
-    this.#owner = owner;
+  constructor(
+    private readonly _compagnon: SimulatedPlayer,
+    private readonly _owner: Player,
+  ) {
+    // this.compagnon = compagnon;
+    // this.owner = owner;
 
-    this.#config();
+    this.config();
   }
 
   get compagnon() {
-    return this.#compagnon;
+    return this._compagnon;
   }
 
   get forced_behavior() {
-    return this.#forced_behavior;
+    return this._forced_behavior;
   }
 
   get owner() {
-    return this.#owner;
+    return this._owner;
   }
 
-  #config() {
+  private config() {
     // Set Skin
-    const playerSkin = getPlayerSkin(this.#owner);
-    this.#compagnon.setSkin(playerSkin);
+    const playerSkin = getPlayerSkin(this._owner);
+    this._compagnon.setSkin(playerSkin);
     debugLog(`[Config] - Compagnon skin set`);
 
     // Initialise Values
-    this.#mouvement_datas = {
-      lastPosition: this.#compagnon.location,
+    this.mouvement_datas = {
+      lastPosition: this._compagnon.location,
       lastPositionTime: 0,
     };
   }
 
-  #recurentsCheck() {
-    if (this.#owner.isSleeping) {
-      this.#shouldSleep = true;
+  /**
+   * @description - Update the variable that need a recurent checking;
+   */
+  private recurentsCheck() {
+    if (this._owner.isSleeping) {
+      this.shouldSleep = true;
     } else {
-      this.#shouldSleep = false;
+      this.shouldSleep = false;
     }
   }
 
-  #nearestFromCompagnon(a: Vector3, b: Vector3) {
+  private nearestFromCompagnon(a: Vector3, b: Vector3) {
     return (
-      Vector3Utils.distance(a, this.#compagnon.location) -
-      Vector3Utils.distance(b, this.#compagnon.location)
+      Vector3Utils.distance(a, this._compagnon.location) -
+      Vector3Utils.distance(b, this._compagnon.location)
     );
   }
 
@@ -116,8 +122,8 @@ export class CompagnonManager {
    * @param {ForcedBehavior} behavior
    */
   updateBehavior(behavior: ForcedBehavior) {
-    this.#forced_behavior = behavior;
-    CompagnonDBManager.updateCompagnonData(this.#owner, {
+    this._forced_behavior = behavior;
+    CompagnonDBManager.updateCompagnonData(this._owner, {
       forced_behavior: behavior,
     });
     debugLog(`Compagnon behavior updated to ${behavior}`);
@@ -127,24 +133,24 @@ export class CompagnonManager {
    * @param {ForcedBehavior[]} behaviors
    * @returns
    */
-  #hasForcedBehavior(behaviors: ForcedBehavior[]) {
-    return behaviors.includes(this.#forced_behavior);
+  private hasForcedBehavior(behaviors: ForcedBehavior[]) {
+    return behaviors.includes(this._forced_behavior);
   }
 
-  #getInventoryComponent(): EntityInventoryComponent {
-    return this.#compagnon.getComponent(EntityComponentTypes.Inventory)!;
+  private getInventoryComponent(): EntityInventoryComponent {
+    return this._compagnon.getComponent(EntityComponentTypes.Inventory)!;
   }
 
-  #getEquipableComponent(): EntityEquippableComponent {
-    return this.#compagnon.getComponent(EntityComponentTypes.Equippable)!;
+  private getEquipableComponent(): EntityEquippableComponent {
+    return this._compagnon.getComponent(EntityComponentTypes.Equippable)!;
   }
 
   /**
    * @description - Update the armor set behavior
    */
-  #armorUpdater() {
-    const equipableComponent = this.#getEquipableComponent();
-    const inventoryComponent = this.#getInventoryComponent();
+  private armorUpdater() {
+    const equipableComponent = this.getEquipableComponent();
+    const inventoryComponent = this.getInventoryComponent();
 
     // Case Head
     for (const armorSlot of [
@@ -183,9 +189,9 @@ export class CompagnonManager {
   /**
    * @description - Update the offhand tool behavior
    */
-  #offHandUpdater() {
-    const equipableComponent = this.#getEquipableComponent();
-    const inventoryComponent = this.#getInventoryComponent();
+  private offHandUpdater() {
+    const equipableComponent = this.getEquipableComponent();
+    const inventoryComponent = this.getInventoryComponent();
 
     const hasOffhandTool = equipableComponent.getEquipment(
       EquipmentSlot.Offhand,
@@ -218,9 +224,9 @@ export class CompagnonManager {
     }
   }
 
-  #UtilsItemsOrganiser() {
-    const inventoryComponent = this.#getInventoryComponent();
-    const equipableComponent = this.#getEquipableComponent();
+  private UtilsItemsOrganiser() {
+    const inventoryComponent = this.getInventoryComponent();
+    const equipableComponent = this.getEquipableComponent();
 
     /**
      * @type {import("../functions/checkforBestItem").ItemPurpose[]}
@@ -254,20 +260,20 @@ export class CompagnonManager {
   onInventoryUpdate() {
     debugLog(
       "[InventoryUpdate] - Compagnon inventory update triggered for " +
-        this.#compagnon.name,
+        this._compagnon.name,
     );
 
     //  Offhand - Updater
-    this.#offHandUpdater();
+    this.offHandUpdater();
 
     // HotBar Configuration
-    this.#UtilsItemsOrganiser();
+    this.UtilsItemsOrganiser();
 
     //Armor Set Updater
-    this.#armorUpdater();
+    this.armorUpdater();
   }
 
-  #move(
+  private move(
     target:
       | {
           type: "entity" | "location";
@@ -298,60 +304,65 @@ export class CompagnonManager {
       return;
     }
 
-    const currentPosition = this.#compagnon.location;
+    const currentPosition = this._compagnon.location;
     const distanceMoved = Vector3Utils.distance(
       currentPosition,
-      this.#mouvement_datas.lastPosition,
+      this.mouvement_datas.lastPosition,
     );
-    const beingStuckSince = this.#mouvement_datas.lastPositionTime;
+    const beingStuckSince = this.mouvement_datas.lastPositionTime;
 
     if (Vector3Utils.distance(currentPosition, targetLocation) < 0.8) {
-      this.#mouvement_datas.lastPositionTime =
-        (this.#mouvement_datas.lastPositionTime ?? 0) + 1;
+      this.mouvement_datas.lastPositionTime =
+        (this.mouvement_datas.lastPositionTime ?? 0) + 1;
       if (beingStuckSince > 5) {
         debugLog("[move] - Compagnon is stuck applying impluse");
         const direction = Vector3Utils.normalize(
           Vector3Utils.add(
             targetLocation,
-            Vector3Utils.scale(this.#compagnon.location, -1),
+            Vector3Utils.scale(this._compagnon.location, -1),
           ),
         );
-        this.#compagnon.applyImpulse({
+        this._compagnon.applyImpulse({
           x: Number.isFinite(direction.x) ? direction.x * 0.5 : 0.5,
           y: 0.4,
           z: Number.isFinite(direction.z) ? direction.z * 0.5 : 0.5,
         });
-        this.#mouvement_datas.lastPositionTime = 0;
-        this.#mouvement_datas.lastPosition = currentPosition;
+        this.mouvement_datas.lastPositionTime = 0;
+        this.mouvement_datas.lastPosition = currentPosition;
       }
     } else {
-      this.#mouvement_datas.lastPositionTime = 0;
-      this.#mouvement_datas.lastPosition = currentPosition;
+      this.mouvement_datas.lastPositionTime = 0;
+      this.mouvement_datas.lastPosition = currentPosition;
     }
 
     debugLog("[move] - trigger compagnon moving");
     if (targetEntity) {
-      this.#compagnon.navigateToEntity(targetEntity);
+      this._compagnon.navigateToEntity(targetEntity);
     } else {
-      this.#compagnon.navigateToLocation(targetLocation);
+      this._compagnon.navigateToLocation(targetLocation);
     }
   }
 
+  //======================================================
   // #region - Compagnon behavior
+  //======================================================
 
-  #sleepBehavior(): boolean {
-    if (!this.#shouldSleep) return false;
+  /**
+   * @description Check if the compagnon should sleep
+   */
+  private sleepBehavior(): boolean {
+    if (!this.shouldSleep) return false;
 
-    if (!this.#compagnon.isSleeping) {
+    if (!this._compagnon.isSleeping) {
       debugLog("[SleepBehavior] - Compagnon need to sleep");
-      const nearestBedArroundPlayer = this.#owner.dimension.getBlocks(
-        createCube(this.#owner.location, 20),
+      const nearestBedArroundPlayer = this._owner.dimension.getBlocks(
+        createCube(this._owner.location, 20),
         {
           includeTypes: [MinecraftBlockTypes.Bed],
         },
       );
-      const nearestBedArroundBot = this.#compagnon.dimension.getBlocks(
-        createCube(this.#compagnon.location, 20),
+      const nearestBedArroundBot = this._compagnon.dimension.getBlocks(
+        createCube(this._compagnon.location, 20),
         {
           includeTypes: [MinecraftBlockTypes.Bed],
         },
@@ -360,7 +371,7 @@ export class CompagnonManager {
       let nearestAvailableBed = null;
 
       for (const bed of nearestBedArroundBot.getBlockLocationIterator()) {
-        const block = this.#compagnon.dimension.getBlock(bed);
+        const block = this._compagnon.dimension.getBlock(bed);
         if (block?.typeId !== MinecraftBlockTypes.Bed) continue;
         const isOccuped = isBedOccupied(block);
         if (isOccuped) continue;
@@ -371,7 +382,7 @@ export class CompagnonManager {
 
       if (!nearestAvailableBed) {
         for (const bed of nearestBedArroundPlayer.getBlockLocationIterator()) {
-          const block = this.#owner.dimension.getBlock(bed);
+          const block = this._owner.dimension.getBlock(bed);
           if (block?.typeId !== MinecraftBlockTypes.Bed) continue;
           const isOccuped = isBedOccupied(block);
           if (isOccuped) continue;
@@ -384,18 +395,18 @@ export class CompagnonManager {
       if (!nearestAvailableBed) {
         debugLog("[SleepBehavior] - Compagnon has no bed around");
         // Attendre 10 Seconde avant de l'avertir encore une fois
-        if (this.#sleep_behavior_data.noBedFoundMessageCooldown == 0) {
-          this.#owner.sendMessage("You need to build a bed for your compagnon");
-          this.#sleep_behavior_data.noBedFoundMessageCooldown = 20 * 10;
+        if (this.sleep_behavior_data.noBedFoundMessageCooldown == 0) {
+          this._owner.sendMessage("You need to build a bed for your compagnon");
+          this.sleep_behavior_data.noBedFoundMessageCooldown = 20 * 10;
         } else {
-          this.#sleep_behavior_data.noBedFoundMessageCooldown =
-            this.#sleep_behavior_data.noBedFoundMessageCooldown - 1;
+          this.sleep_behavior_data.noBedFoundMessageCooldown =
+            this.sleep_behavior_data.noBedFoundMessageCooldown - 1;
         }
       } else {
         debugLog("[SleepBehavior] - Compagnon Found A bed");
 
-        this.#compagnon.teleport(nearestAvailableBed);
-        this.#compagnon.interactWithBlock(nearestAvailableBed);
+        this._compagnon.teleport(nearestAvailableBed);
+        this._compagnon.interactWithBlock(nearestAvailableBed);
       }
     } else {
       debugLog("[SleepBehavior] - Compagnon is sleeping");
@@ -404,17 +415,17 @@ export class CompagnonManager {
     return true;
   }
 
-  #farmingMobsBehavior() {
-    const availableStackItem = this.#compagnon.dimension
+  private farmingMobsBehavior() {
+    const availableStackItem = this._compagnon.dimension
       .getEntities({
-        location: this.#compagnon.location,
+        location: this._compagnon.location,
         maxDistance: 5,
       })
       .filter((e) => e.hasComponent(EntityComponentTypes.Item))
-      .sort((a, b) => this.#nearestFromCompagnon(a.location, b.location));
+      .sort((a, b) => this.nearestFromCompagnon(a.location, b.location));
 
-    const mobs = world.getDimension(this.#compagnon.dimension.id).getEntities({
-      location: this.#compagnon.location,
+    const mobs = world.getDimension(this._compagnon.dimension.id).getEntities({
+      location: this._compagnon.location,
       maxDistance: 20,
       families: ["mob"],
       excludeFamilies: ["player"],
@@ -426,53 +437,53 @@ export class CompagnonManager {
           .getComponent(EntityComponentTypes.TypeFamily)
           ?.hasTypeFamily("monster"),
       )
-      .sort((a, b) => this.#nearestFromCompagnon(a.location, b.location));
+      .sort((a, b) => this.nearestFromCompagnon(a.location, b.location));
 
     const farmableMobs = mobs
       .filter((m) => FOOD_MOBS.has(m.typeId))
-      .sort((a, b) => this.#nearestFromCompagnon(a.location, b.location));
+      .sort((a, b) => this.nearestFromCompagnon(a.location, b.location));
 
     if (availableStackItem.length > 0) {
       debugLog("[FarmMobBehavior] - Compagnon is picking up items");
-      this.#behavior = "pick_item";
-      this.#target_item = availableStackItem[0];
+      this.behavior = "pick_item";
+      this.target_item = availableStackItem[0];
     } else if (
       monstersMobs.length > 0 &&
       Vector3Utils.distance(
-        this.#compagnon.location,
+        this._compagnon.location,
         monstersMobs[0].location,
       ) < 5
     ) {
       debugLog("[FarmMobBehavior] - Compagnon is fighting a monster");
-      this.#behavior = "fight";
-      this.#target_entity = monstersMobs[0];
+      this.behavior = "fight";
+      this.target_entity = monstersMobs[0];
     } else if (farmableMobs.length > 0) {
       debugLog("[FarmMobBehavior] - Compagnon is farming a mob");
-      this.#behavior = "fight";
-      this.#target_entity = farmableMobs[0];
+      this.behavior = "fight";
+      this.target_entity = farmableMobs[0];
     } else {
       // If there are no target randomPatrol
-      if (this.#farming_behavior_datas.checkpoint !== null) {
+      if (this.farming_behavior_datas.checkpoint !== null) {
         if (
           Vector3Utils.distance(
-            this.#compagnon.location,
-            this.#farming_behavior_datas.checkpoint,
+            this._compagnon.location,
+            this.farming_behavior_datas.checkpoint,
           ) <= 3
         ) {
           debugLog("[FarmMobBehavior] - Compagnon resetting checkpoint");
-          this.#farming_behavior_datas.checkpoint = null;
+          this.farming_behavior_datas.checkpoint = null;
         } else {
-          this.#behavior = "move_to_location";
-          this.#target_location = this.#farming_behavior_datas.checkpoint;
+          this.behavior = "move_to_location";
+          this.target_location = this.farming_behavior_datas.checkpoint;
         }
       } else {
         const randomPoint = getRandomPointAround(
-          this.#compagnon.location,
+          this._compagnon.location,
           10,
           20,
         );
         const topBlock = world
-          .getDimension(this.#compagnon.dimension.id)
+          .getDimension(this._compagnon.dimension.id)
           .getTopmostBlock({
             x: randomPoint.x,
             z: randomPoint.z,
@@ -483,12 +494,12 @@ export class CompagnonManager {
             "[FarmMobBehavior] - Compagnon setting new checkpoint : " +
               topBlock.location,
           );
-          this.#farming_behavior_datas.checkpoint = {
+          this.farming_behavior_datas.checkpoint = {
             ...topBlock.location,
             y: topBlock.location.y + 1,
           };
-          this.#behavior = "move_to_location";
-          this.#target_location = this.#farming_behavior_datas.checkpoint;
+          this.behavior = "move_to_location";
+          this.target_location = this.farming_behavior_datas.checkpoint;
         } else {
           debugLog(
             "[FarmMobBehavior] - Compagnon could not find a valid checkpoint",
@@ -499,102 +510,102 @@ export class CompagnonManager {
   }
 
   set ownerEntityTarget(entity: Entity | null) {
-    if (!entity || !entity.isValid || entity === this.#owner) {
-      this.#ownerEntityTarget = null;
+    if (!entity || !entity.isValid || entity === this._owner) {
+      this._ownerEntityTarget = null;
       return;
     }
 
-    this.#ownerEntityTarget = entity;
+    this._ownerEntityTarget = entity;
   }
 
-  #defaultBehavior() {
+  private defaultBehavior() {
     // Priority 1 : Sleep if owner sleep
-    if (this.#sleepBehavior()) return;
+    if (this.sleepBehavior()) return;
 
-    const nearbyDroppedItems = this.#compagnon.dimension
+    const nearbyDroppedItems = this._compagnon.dimension
       .getEntities({
-        location: this.#compagnon.location,
+        location: this._compagnon.location,
         maxDistance: 2,
       })
       .filter((e) => e.hasComponent(EntityComponentTypes.Item))
-      .sort((a, b) => this.#nearestFromCompagnon(a.location, b.location));
+      .sort((a, b) => this.nearestFromCompagnon(a.location, b.location));
 
     if (nearbyDroppedItems.length > 0) {
-      this.#target_item = nearbyDroppedItems[0];
+      this.target_item = nearbyDroppedItems[0];
 
-      if (!this.#target_item || !this.#target_item.isValid) {
-        this.#target_item = null;
+      if (!this.target_item || !this.target_item.isValid) {
+        this.target_item = null;
       } else {
-        this.#compagnon.navigateToEntity(this.#target_item);
+        this._compagnon.navigateToEntity(this.target_item);
         return;
       }
     }
 
-    if (this.#ownerEntityTarget && this.#ownerEntityTarget.isValid) {
+    if (this._ownerEntityTarget && this._ownerEntityTarget.isValid) {
       const distanceBetweenOwnerTarget = Vector3Utils.distance(
-        this.#compagnon.location,
-        this.#ownerEntityTarget.location,
+        this._compagnon.location,
+        this._ownerEntityTarget.location,
       );
 
       if (distanceBetweenOwnerTarget <= 10) {
         if (distanceBetweenOwnerTarget > 3) {
-          this.#compagnon.navigateToEntity(this.#ownerEntityTarget);
+          this._compagnon.navigateToEntity(this._ownerEntityTarget);
           return;
         }
 
-        this.#compagnon.selectedSlotIndex = 0;
-        this.#compagnon.stopMoving();
-        this.#compagnon.attackEntity(this.#ownerEntityTarget);
+        this._compagnon.selectedSlotIndex = 0;
+        this._compagnon.stopMoving();
+        this._compagnon.attackEntity(this._ownerEntityTarget);
         return;
       }
 
-      this.#ownerEntityTarget = null;
+      this._ownerEntityTarget = null;
     }
 
-    const hostileMobs = this.#compagnon.dimension
+    const hostileMobs = this._compagnon.dimension
       .getEntities({
-        location: this.#compagnon.location,
+        location: this._compagnon.location,
         maxDistance: 8,
         families: ["monster"],
       })
-      .sort((a, b) => this.#nearestFromCompagnon(a.location, b.location));
+      .sort((a, b) => this.nearestFromCompagnon(a.location, b.location));
 
     if (hostileMobs.length > 0) {
       const target = hostileMobs[0];
       const distanceBetweenHostile = Vector3Utils.distance(
-        this.#compagnon.location,
+        this._compagnon.location,
         target.location,
       );
 
       if (distanceBetweenHostile <= 5) {
         if (distanceBetweenHostile > 3) {
-          this.#compagnon.navigateToEntity(target);
+          this._compagnon.navigateToEntity(target);
           return;
         }
 
-        if (this.#compagnon.selectedSlotIndex !== 0)
-          this.#compagnon.selectedSlotIndex = 0;
-        this.#compagnon.stopMoving();
-        this.#compagnon.attackEntity(target);
-        this.#compagnon.lookAtEntity(target);
+        if (this._compagnon.selectedSlotIndex !== 0)
+          this._compagnon.selectedSlotIndex = 0;
+        this._compagnon.stopMoving();
+        this._compagnon.attackEntity(target);
+        this._compagnon.lookAtEntity(target);
         return;
       }
     }
 
     const distanceBetweenOwner = Vector3Utils.distance(
-      this.#compagnon.location,
-      this.#owner.location,
+      this._compagnon.location,
+      this._owner.location,
     );
 
     if (distanceBetweenOwner > 15) {
-      this.#compagnon.teleport(this.#owner.location);
+      this._compagnon.teleport(this._owner.location);
     }
 
     if (distanceBetweenOwner > 3 && distanceBetweenOwner < 15) {
-      this.#compagnon.navigateToEntity(this.#owner);
+      this._compagnon.navigateToEntity(this._owner);
     } else {
-      this.#compagnon.stopMoving();
-      this.#compagnon.lookAtEntity(this.#owner);
+      this._compagnon.stopMoving();
+      this._compagnon.lookAtEntity(this._owner);
     }
   }
 
@@ -685,8 +696,8 @@ export class CompagnonManager {
 
   compagnonBehavior() {
     // Recurent Check
-    this.#recurentsCheck();
+    this.recurentsCheck();
 
-    this.#defaultBehavior();
+    this.defaultBehavior();
   }
 }
