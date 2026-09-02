@@ -29,7 +29,10 @@ import {
 } from "../functions/checkforBestItem";
 import { FOOD_MOBS } from "../constants/foodMobs";
 import { getRandomPointAround } from "../functions/getRandomPointAround";
-import { MinecraftBlockTypes } from "@minecraft/vanilla-data";
+import {
+  MinecraftBlockTypes,
+  MinecraftEntityTypes,
+} from "@minecraft/vanilla-data";
 import { createCube } from "../functions/createCube";
 import { isBedOccupied } from "../functions/isBedOccuped";
 import { checkForBestFood, FOOD_SCORES } from "../functions/checkForBestFood";
@@ -655,6 +658,13 @@ export class CompagnonManager {
     if (nearestMonster.length == 0) return false;
     if (!nearestMonster[0].isValid) return false;
 
+    if (nearestMonster[0].typeId === "minecraft:creeper") {
+      this.shouldProtectFromCreeperExplosionIfHasShield({
+        creeper: nearestMonster[0],
+      });
+      return true;
+    }
+
     debugLog("[ShouldAvoidMobsBehavior] - Compagnon have to avoid mobs");
     const safestDirection = safestDirectionFromMob(
       nearestMonster[0].location,
@@ -692,6 +702,37 @@ export class CompagnonManager {
     }
 
     return false;
+  }
+
+  private shouldProtectFromCreeperExplosionIfHasShield(
+    options: { maxDistance?: number; creeper?: Entity } = {
+      maxDistance: 5,
+    },
+  ): boolean {
+    let creeper;
+    if (options.creeper) {
+      creeper = options.creeper;
+    } else {
+      const existingCreeper = this._compagnon.dimension.getEntities({
+        location: this._compagnon.location,
+        maxDistance: options.maxDistance,
+        type: MinecraftEntityTypes.Creeper,
+        closest: 1,
+      });
+
+      if (existingCreeper.length == 0) return false;
+      creeper = existingCreeper[0];
+    }
+
+    if (!creeper.isValid) return false;
+    const hasShield = this.getEquipableComponent().getEquipmentSlot(
+      EquipmentSlot.Offhand,
+    );
+    if (hasShield.typeId !== "minecraft:shield") return false;
+    this.compagnon.lookAtEntity(creeper);
+    this._compagnon.isSneaking = true;
+
+    return true;
   }
 
   private farmingMobsBehavior() {
@@ -792,22 +833,25 @@ export class CompagnonManager {
     // Priority 1 : Sleep if owner sleep
     if (this.sleepBehavior()) return;
 
-    // Priority 2 : Heal if owner is low
+    // Priority 2 : Heal if health is low
     if (this.shouldHealBehavior()) return;
 
-    // Priority 3 : Eat if owner is low
+    // Priority 3 : Block Creeper explosion if has shield
+    if (this.shouldProtectFromCreeperExplosionIfHasShield()) return;
+
+    // Priority 4 : Eat if hunger bar is low
     if (this.shouldEatBehavior({ shouldEatAt: 6, ShouldEatUntil: 20 })) return;
 
-    // Priority 4 : Get dropped item in range 2 from compagnon
+    // Priority 5 : Get dropped item in range 2 from compagnon
     if (this.getNearestDropedItemBehavior({ maxDistance: 2 })) return;
 
-    // Priority 5 : Attack owner target if exists
+    // Priority 6 : Attack owner target if exists
     if (this.shouldAttackOwnerTargetBehavior({ shouldIgnoreRange: 10 })) return;
 
-    // Priority 6 : Attack nearest monster mob
+    // Priority 7 : Attack nearest monster mob
     if (this.shouldAttackNearestMonsterMobs({ maxDistance: 8 })) return;
 
-    // Priority 7 : Follow owner
+    // Priority 8 : Follow owner
     if (this.shouldfollowPlayerBehavior()) return;
   }
 
