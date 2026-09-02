@@ -550,7 +550,7 @@ export class CompagnonManager {
         this._compagnon.selectedSlotIndex = 0;
       this._compagnon.stopMoving();
       this._compagnon.attackEntity(target);
-      this._compagnon.lookAtEntity(target);
+      this._compagnon.lookAtEntity(target, LookDuration.UntilMove);
     }
 
     return true;
@@ -574,7 +574,7 @@ export class CompagnonManager {
       this._compagnon.navigateToEntity(this._owner);
     } else {
       this._compagnon.stopMoving();
-      this._compagnon.lookAtEntity(this._owner);
+      this._compagnon.lookAtEntity(this._owner, LookDuration.UntilMove);
     }
 
     return true;
@@ -762,7 +762,8 @@ export class CompagnonManager {
     debugLog(
       "[ShouldProtectFromCreeperExplosionIfHasShield] - Has shield, looking at creeper and sneaking",
     );
-    this.compagnon.lookAtEntity(creeper);
+    this.compagnon.stopMoving();
+    this.compagnon.lookAtEntity(creeper, LookDuration.UntilMove);
     this._compagnon.isSneaking = true;
 
     return true;
