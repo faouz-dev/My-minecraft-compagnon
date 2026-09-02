@@ -660,10 +660,12 @@ export class CompagnonManager {
     if (!nearestMonster[0].isValid) return false;
 
     if (nearestMonster[0].typeId === "minecraft:creeper") {
-      this.shouldProtectFromCreeperExplosionIfHasShield({
-        creeper: nearestMonster[0],
-      });
-      return true;
+      if (
+        this.shouldProtectFromCreeperExplosionIfHasShield({
+          creeper: nearestMonster[0],
+        })
+      )
+        return true;
     }
 
     debugLog("[ShouldAvoidMobsBehavior] - Compagnon have to avoid mobs");
@@ -710,7 +712,7 @@ export class CompagnonManager {
       maxDistance: 5,
     },
   ): boolean {
-    let creeper;
+    let creeper: Entity | null = null;
     if (options.creeper) {
       creeper = options.creeper;
     } else {
@@ -721,15 +723,45 @@ export class CompagnonManager {
         closest: 1,
       });
 
-      if (existingCreeper.length == 0) return false;
-      creeper = existingCreeper[0];
+      if (existingCreeper.length > 0) {
+        creeper = existingCreeper[0];
+      } else {
+      }
     }
 
-    if (!creeper.isValid) return false;
+    if (creeper == null || !creeper.isValid) {
+      debugLog(
+        "[ShouldProtectFromCreeperExplosionIfHasShield] - Creeper invalid, stopping sneak",
+      );
+      if (this._compagnon.isSneaking) this._compagnon.isSneaking = false;
+      return false;
+    }
+    debugLog(
+      "[ShouldProtectFromCreeperExplosionIfHasShield] - Compagnon need to protect from creeper explosion",
+    );
     const hasShield = this.getEquipableComponent().getEquipmentSlot(
       EquipmentSlot.Offhand,
     );
-    if (hasShield.typeId !== MinecraftItemTypes.Shield) return false;
+    try {
+      if (
+        !hasShield ||
+        !hasShield.isValid ||
+        hasShield.typeId !== MinecraftItemTypes.Shield
+      ) {
+        debugLog(
+          "[ShouldProtectFromCreeperExplosionIfHasShield] - No shield equipped",
+        );
+        return false;
+      }
+    } catch (error) {
+      debugLog(
+        "[ShouldProtectFromCreeperExplosionIfHasShield] - Error considering as no shield equiped No shield equipped",
+      );
+      return false;
+    }
+    debugLog(
+      "[ShouldProtectFromCreeperExplosionIfHasShield] - Has shield, looking at creeper and sneaking",
+    );
     this.compagnon.lookAtEntity(creeper);
     this._compagnon.isSneaking = true;
 
@@ -943,10 +975,6 @@ export class CompagnonManager {
 
   compagnonBehavior() {
     if (isDebug) {
-      this._compagnon
-        .getComponent(EntityComponentTypes.Health)!
-        .setCurrentValue(4);
-
       const health = this._compagnon.getComponent(
         EntityComponentTypes.Health,
       )!.currentValue;
