@@ -32,6 +32,7 @@ import { getRandomPointAround } from "../functions/getRandomPointAround";
 import {
   MinecraftBlockTypes,
   MinecraftEntityTypes,
+  MinecraftItemTypes,
 } from "@minecraft/vanilla-data";
 import { createCube } from "../functions/createCube";
 import { isBedOccupied } from "../functions/isBedOccuped";
@@ -728,7 +729,7 @@ export class CompagnonManager {
     const hasShield = this.getEquipableComponent().getEquipmentSlot(
       EquipmentSlot.Offhand,
     );
-    if (hasShield.typeId !== "minecraft:shield") return false;
+    if (hasShield.typeId !== MinecraftItemTypes.Shield) return false;
     this.compagnon.lookAtEntity(creeper);
     this._compagnon.isSneaking = true;
 
