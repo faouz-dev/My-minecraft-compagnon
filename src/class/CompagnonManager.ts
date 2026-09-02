@@ -14,6 +14,9 @@ import {
   type Vector3,
   BlockVolumeBase,
   type EntityQueryOptions,
+  type EntityComponentReturnType,
+  Dimension,
+  BlockVolume,
 } from "@minecraft/server";
 import {
   getPlayerSkin,
@@ -31,6 +34,7 @@ import { FOOD_MOBS } from "../constants/foodMobs";
 import { getRandomPointAround } from "../functions/getRandomPointAround";
 import {
   MinecraftBlockTypes,
+  MinecraftDimensionTypes,
   MinecraftEntityTypes,
   MinecraftItemTypes,
 } from "@minecraft/vanilla-data";
@@ -44,8 +48,8 @@ import { roundDirection } from "../functions/roundDirection";
 export type ForcedBehavior =
   | "default"
   | "follow_player"
-  | "kill_mobs_for_food"
-  | "farm_in_champs";
+  | "mobs_farming"
+  | "crop_farming";
 
 export class CompagnonManager {
   //=================================================
@@ -75,6 +79,30 @@ export class CompagnonManager {
     noBedFoundMessageCooldown: 0,
   };
   private eat_behavior_data: { startEating: boolean } = { startEating: false };
+  private crop_farming_behavior_data: {
+    area:
+      | {
+          dimension: MinecraftDimensionTypes | undefined;
+          waypoints: { p1: Vector3; p2: Vector3 } | undefined;
+          warnNoAreaProvided: boolean;
+          warnNoFarmLandInAreaSelected: boolean;
+        }
+      | undefined;
+    chest: {
+      chestPosition: Vector3 | undefined;
+      chestContainerComponents:
+        | EntityComponentReturnType<"minecraft:inventory">
+        | undefined;
+      avertissementMade: boolean;
+    };
+  } = {
+    area: undefined,
+    chest: {
+      chestPosition: undefined,
+      chestContainerComponents: undefined,
+      avertissementMade: false,
+    },
+  };
 
   //=================================================
   // #endregion Variable Declaration
@@ -175,6 +203,10 @@ export class CompagnonManager {
 
   private getEquipableComponent(): EntityEquippableComponent {
     return this._compagnon.getComponent(EntityComponentTypes.Equippable)!;
+  }
+
+  private tellOnwer(message: string) {
+    this._owner.sendMessage(`§8[§b${this._compagnon.name}§8] §7→ §r${message}`);
   }
 
   /**
@@ -375,8 +407,21 @@ export class CompagnonManager {
     }
   }
 
+  private updateNameTag() {
+    const health = this._compagnon.getComponent(
+      EntityComponentTypes.Health,
+    )!.currentValue;
+
+    const hearts = Math.round(health / 2);
+
+    this._compagnon.nameTag =
+      `§l§f${this.compagnon.name}§r\n` +
+      `§c❤ §f${hearts} §7HP§r\n` +
+      `§8✦ owner : §f${this._owner.name}`;
+  }
+
   //======================================================
-  // #region - Compagnon behavior
+  // #region - CONSTITUTIONNAL BEHAVIORS
   //======================================================
 
   /**
@@ -769,6 +814,62 @@ export class CompagnonManager {
     return true;
   }
 
+  private shouldFarmCropBehavior(): boolean {
+    const { area, chest } = this.crop_farming_behavior_data;
+
+    // Case farming area in zone
+    if (!area || !area.dimension || !area.waypoints) {
+      if (!chest.avertissementMade) {
+        this.tellOnwer(
+          "No farm area selected , please use a stick renamed to 'cpn' and hit two farmland to deline the farm area",
+        );
+        chest.avertissementMade = true;
+      }
+      return false;
+    }
+
+    // warn but farm anyway if chest not set
+    if (!chest.chestPosition) {
+      if (!chest.avertissementMade) {
+        this.tellOnwer(
+          "You didn't provide the chest to put the crops and seeds in , if my inventory is full i won't be able to farm",
+        );
+        chest.avertissementMade = true;
+      }
+    }
+
+    const farmableLandsInArea = world
+      .getDimension(area.dimension)
+      .getBlocks(new BlockVolume(area.waypoints.p1, area.waypoints.p2), {
+        includeTypes: [MinecraftBlockTypes.Farmland],
+      });
+
+    const farmLandLength = Array.from(
+      farmableLandsInArea.getBlockLocationIterator(),
+    ).length;
+
+    if (farmLandLength === 0) {
+      if (!area.warnNoFarmLandInAreaSelected) {
+        this.tellOnwer(
+          "No farmland found in the selected area , please select a new area",
+        );
+        area.warnNoFarmLandInAreaSelected = true;
+      }
+    }
+
+    
+
+    return true;
+  }
+
+  // ======================================================================
+  //                 #endregion Constitutionnal Behaviors
+  //=======================================================================
+
+  //=======================================================================
+  //                      #region  Main Behaviors
+  //=======================================================================
+
   private farmingMobsBehavior() {
     const availableStackItem = this._compagnon.dimension
       .getEntities({
@@ -889,6 +990,26 @@ export class CompagnonManager {
     if (this.shouldfollowPlayerBehavior()) return;
   }
 
+  private cropFarmingBehavior() {
+    // Priority 1 : Sleep if owner sleep
+    if (this.sleepBehavior()) return;
+
+    // Priority 2 : Heal if health is low
+    if (this.shouldHealBehavior()) return;
+
+    // Priority 3 : Block Creeper explosion if has shield
+    if (this.shouldProtectFromCreeperExplosionIfHasShield()) return;
+
+    // Priority 4 : Eat if hunger bar is low
+    if (this.shouldEatBehavior({ shouldEatAt: 6, ShouldEatUntil: 20 })) return;
+
+    // Priority 5 : Get dropped item in range 5 form farming better
+    if (this.getNearestDropedItemBehavior({ maxDistance: 5 })) return;
+
+    // Priority 6 : attack nearest mob
+    if (this.shouldAttackNearestMonsterMobs({ maxDistance: 5 })) return;
+  }
+
   // ====================================================================
   //                    Full behavior management
   // ====================================================================
@@ -975,24 +1096,16 @@ export class CompagnonManager {
   // }
 
   compagnonBehavior() {
-    if (isDebug) {
-      const health = this._compagnon.getComponent(
-        EntityComponentTypes.Health,
-      )!.currentValue;
-      const hunger = this._compagnon.getComponent(
-        EntityComponentTypes.Hunger,
-      )!.currentValue;
-
-      const icon = health > 0 && hunger > 0 ? "§a❤" : "§c✖";
-      const healthColor = health <= 6 ? "§c" : health <= 12 ? "§e" : "§a";
-      const hungerColor = hunger <= 3 ? "§c" : hunger <= 8 ? "§e" : "§a";
-
-      this._compagnon.nameTag = `${icon} §7${this.compagnon.name} §8| ${healthColor}${health}§8 | ${hungerColor}${hunger}`;
-    }
-
+    this.updateNameTag();
     // Recurent Check
     this.recurentsCheck();
 
-    this.defaultBehavior();
+    switch (this.forced_behavior) {
+      case "default":
+        this.defaultBehavior();
+        break;
+      case "crop_farming":
+        this.cropFarmingBehavior();
+    }
   }
 }

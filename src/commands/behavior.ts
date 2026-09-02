@@ -27,10 +27,10 @@ initCommands({
         forced_behavior = "follow_player";
         break;
       case 2:
-        forced_behavior = "kill_mobs_for_food";
+        forced_behavior = "mobs_farming";
         break;
       case 3:
-        forced_behavior = "farm_in_champs";
+        forced_behavior = "crop_farming";
         break;
       default:
     }
