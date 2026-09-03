@@ -1,0 +1,1 @@
+export const COMPAGNON_TYPE = 'faouzdev:compagnon'

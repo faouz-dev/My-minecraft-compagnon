@@ -1,1 +1,1 @@
-import "./help";
+export * from './help';

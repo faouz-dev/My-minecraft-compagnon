@@ -4,6 +4,7 @@ import { CompagnonDBManager } from "../class/CompagnonDBManager";
 import { createCompagnon } from "../functions/createCompagnon";
 import { debugLog } from "../functions/debugLog";
 import { MinecraftBlockTypes } from "@minecraft/vanilla-data";
+import { COMPAGNON_TYPE } from "../constants/compagnonType";
 
 world.afterEvents.playerSpawn.subscribe(({ player }) => {
   // Spawn Player's Bot
@@ -29,7 +30,7 @@ world.afterEvents.playerLeave.subscribe(({ playerId }) => {
 world.afterEvents.playerInventoryItemChange.subscribe((event) => {
   const { player } = event;
   // trigger compagnon update event
-  if (player.hasTag("faouzdev:compagnon")) {
+  if (player.hasTag(COMPAGNON_TYPE)) {
     const compagnon = Array.from(COMPAGNONS.values()).find(
       (c) => c.compagnon.id === player.id,
     );

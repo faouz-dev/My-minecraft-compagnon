@@ -2,11 +2,12 @@ import { EntityComponentTypes, world } from "@minecraft/server";
 import { COMPAGNONS } from "../constants/Compagnons";
 import { debugLog } from "../functions/debugLog";
 import { CompagnonDBManager } from "../class/CompagnonDBManager";
+import { COMPAGNON_TYPE } from "../constants/compagnonType";
 
 world.afterEvents.entityDie.subscribe((event) => {
   const { deadEntity } = event;
 
-  if (deadEntity.hasTag("faouzdev:compagnon")) {
+  if (deadEntity.hasTag(COMPAGNON_TYPE)) {
     debugLog(`Compagnon ${deadEntity.id} is dead`);
     const compagnon = Array.from(COMPAGNONS.values()).find(
       (c) => c.compagnon.id === deadEntity.id,
@@ -35,3 +36,5 @@ world.afterEvents.entityHitEntity.subscribe((event) => {
     }
   }
 });
+
+world.afterEvents.itemUse
