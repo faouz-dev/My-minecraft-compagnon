@@ -2,10 +2,10 @@
   "format_version": "1.20.10",
   "minecraft:recipe_shaped": {
     "description": {
-      "identifier": "mycompagnon:cpn_stick_recipe"
+      "identifier": "mycompagnon:cpn_guider_recipe"
     },
     "tags": ["crafting_table"],
-    "pattern": ["D  ", " B ", "  B"],
+    "pattern": ["  D", " B ", "B  "],
     "key": {
       "D": {
         "item": "minecraft:diamond_block"
@@ -15,8 +15,11 @@
       }
     },
     "result": {
-      "item": "mycompagnon:cpn_stick",
+      "item": "mycompagnon:cpn_guider",
       "count": 1
+    },
+    "unlock": {
+      "context": "AlwaysUnlocked"
     }
   }
 }

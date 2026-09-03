@@ -1,9 +1,6 @@
 import { system, world } from "@minecraft/server";
-import { CompagnonStickCustomComponent } from "../customComponents/CompagnonStickCustomComponent";
+import { CompagnonGuiderCustomComponent } from "../customComponents/CompagnonGuiderCustomComponent";
 
 system.beforeEvents.startup.subscribe(({ itemComponentRegistry }) => {
-  itemComponentRegistry.registerCustomComponent(
-    "mycompagnon:compagnon_stick",
-    new CompagnonStickCustomComponent(),
-  );
+  itemComponentRegistry.registerCustomComponent("mycompagnon:compagnon_guider", new CompagnonGuiderCustomComponent());
 });

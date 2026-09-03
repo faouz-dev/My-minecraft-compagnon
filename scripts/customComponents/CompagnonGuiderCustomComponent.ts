@@ -9,7 +9,7 @@ import type {
 import { COMPAGNON_TYPE } from "../constants/compagnonType";
 import { Vector3Utils } from "@minecraft/math";
 
-export class CompagnonStickCustomComponent implements ItemCustomComponent {
+export class CompagnonGuiderCustomComponent implements ItemCustomComponent {
   constructor() {
     this.onUse = this.onUse.bind(this);
   }
@@ -25,16 +25,10 @@ export class CompagnonStickCustomComponent implements ItemCustomComponent {
     const useOnBlock = source.getBlockFromViewDirection({ maxDistance: 5 });
 
     let usedOn: "block" | "entity" | undefined;
-    const entityDistance =
-      useOnEntity.length > 0 ? useOnEntity[0].distance : undefined;
-    const blockDistance = useOnBlock
-      ? Vector3Utils.distance(useOnBlock.block.location, source.location)
-      : undefined;
+    const entityDistance = useOnEntity.length > 0 ? useOnEntity[0].distance : undefined;
+    const blockDistance = useOnBlock ? Vector3Utils.distance(useOnBlock.block.location, source.location) : undefined;
 
-    if (
-      (entityDistance && blockDistance && entityDistance < blockDistance) ||
-      !blockDistance
-    ) {
+    if ((entityDistance && blockDistance && entityDistance < blockDistance) || !blockDistance) {
       usedOn = "entity";
     } else if (blockDistance) {
       usedOn = "block";
