@@ -2,7 +2,7 @@
   "format_version": "1.20.10",
   "minecraft:recipe_shaped": {
     "description": {
-      "identifier": "mycompagnon:cpn_guider_recipe"
+      "identifier": "mycompagnon:cpn_guider"
     },
     "tags": ["crafting_table"],
     "pattern": ["  D", " B ", "B  "],
