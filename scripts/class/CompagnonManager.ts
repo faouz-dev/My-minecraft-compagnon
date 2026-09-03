@@ -18,18 +18,11 @@ import {
   Dimension,
   BlockVolume,
 } from "@minecraft/server";
-import {
-  getPlayerSkin,
-  LookDuration,
-  SimulatedPlayer,
-} from "@minecraft/server-gametest";
+import { getPlayerSkin, LookDuration, SimulatedPlayer } from "@minecraft/server-gametest";
 import { Vector2Utils, Vector3Utils } from "@minecraft/math";
 import { debugLog } from "../functions/debugLog";
 import { CompagnonDBManager } from "./CompagnonDBManager";
-import {
-  checkforBestItem,
-  type ItemPurpose,
-} from "../functions/checkforBestItem";
+import { checkforBestItem, type ItemPurpose } from "../functions/checkforBestItem";
 import { FOOD_MOBS } from "../constants/foodMobs";
 import { getRandomPointAround } from "../functions/getRandomPointAround";
 import {
@@ -45,11 +38,7 @@ import { isDebug } from "../constants/isDebug";
 import { safestDirectionFromMob } from "../functions/safestDirectionFromMob";
 import { roundDirection } from "../functions/roundDirection";
 
-export type ForcedBehavior =
-  | "default"
-  | "follow_player"
-  | "mobs_farming"
-  | "crop_farming";
+export type ForcedBehavior = "default" | "follow_player" | "mobs_farming" | "crop_farming";
 
 export class CompagnonManager {
   //=================================================
@@ -90,9 +79,7 @@ export class CompagnonManager {
       | undefined;
     chest: {
       chestPosition: Vector3 | undefined;
-      chestContainerComponents:
-        | EntityComponentReturnType<"minecraft:inventory">
-        | undefined;
+      chestContainerComponents: EntityComponentReturnType<"minecraft:inventory"> | undefined;
       avertissementMade: boolean;
     };
   } = {
@@ -110,7 +97,7 @@ export class CompagnonManager {
 
   constructor(
     private readonly _compagnon: SimulatedPlayer,
-    private readonly _owner: Player,
+    private readonly _owner: Player
   ) {
     // this.compagnon = compagnon;
     // this.owner = owner;
@@ -172,10 +159,7 @@ export class CompagnonManager {
   }
 
   private nearestFromCompagnon(a: Vector3, b: Vector3) {
-    return (
-      Vector3Utils.distance(a, this._compagnon.location) -
-      Vector3Utils.distance(b, this._compagnon.location)
-    );
+    return Vector3Utils.distance(a, this._compagnon.location) - Vector3Utils.distance(b, this._compagnon.location);
   }
 
   /**
@@ -217,34 +201,18 @@ export class CompagnonManager {
     const inventoryComponent = this.getInventoryComponent();
 
     // Case Head
-    for (const armorSlot of [
-      EquipmentSlot.Head,
-      EquipmentSlot.Chest,
-      EquipmentSlot.Legs,
-      EquipmentSlot.Feet,
-    ]) {
+    for (const armorSlot of [EquipmentSlot.Head, EquipmentSlot.Chest, EquipmentSlot.Legs, EquipmentSlot.Feet]) {
       const hasArmorOnSlot = equipableComponent.getEquipment(armorSlot);
-      const bestArmorForSlot = checkforBestItem(
-        hasArmorOnSlot,
-        inventoryComponent.container,
-        armorSlot,
-      );
+      const bestArmorForSlot = checkforBestItem(hasArmorOnSlot, inventoryComponent.container, armorSlot);
       if (bestArmorForSlot.shouldChange) {
-        debugLog(
-          `[ArmorUpdater] - Compagnon should change helmet : ${bestArmorForSlot.bestItem?.type}`,
-        );
+        debugLog(`[ArmorUpdater] - Compagnon should change helmet : ${bestArmorForSlot.bestItem?.type}`);
         try {
-          equipableComponent.setEquipment(
-            armorSlot,
-            bestArmorForSlot.bestItem?.clone(),
-          );
+          equipableComponent.setEquipment(armorSlot, bestArmorForSlot.bestItem?.clone());
           // @ts-ignore
           inventoryComponent.container.setItem(bestArmorForSlot.index);
           debugLog("[ArmorUpdater] - Compagnon armor set on slot " + armorSlot);
         } catch (error) {
-          debugLog(
-            `[ArmorUpdater] - Error on setting compagnon armor :` + error,
-          );
+          debugLog(`[ArmorUpdater] - Error on setting compagnon armor :` + error);
         }
       }
     }
@@ -257,33 +225,16 @@ export class CompagnonManager {
     const equipableComponent = this.getEquipableComponent();
     const inventoryComponent = this.getInventoryComponent();
 
-    const hasOffhandTool = equipableComponent.getEquipment(
-      EquipmentSlot.Offhand,
-    );
-    const bestOffhandTool = checkforBestItem(
-      hasOffhandTool,
-      inventoryComponent.container,
-      EquipmentSlot.Offhand,
-    );
+    const hasOffhandTool = equipableComponent.getEquipment(EquipmentSlot.Offhand);
+    const bestOffhandTool = checkforBestItem(hasOffhandTool, inventoryComponent.container, EquipmentSlot.Offhand);
     if (bestOffhandTool.shouldChange && bestOffhandTool.index !== undefined) {
-      debugLog(
-        `[OffHandUpdater] - Compagnon should change offhand tool : ${bestOffhandTool.bestItem?.type}`,
-      );
+      debugLog(`[OffHandUpdater] - Compagnon should change offhand tool : ${bestOffhandTool.bestItem?.type}`);
       try {
-        equipableComponent.setEquipment(
-          EquipmentSlot.Offhand,
-          bestOffhandTool.bestItem?.clone(),
-        );
+        equipableComponent.setEquipment(EquipmentSlot.Offhand, bestOffhandTool.bestItem?.clone());
         inventoryComponent.container.setItem(bestOffhandTool.index);
-        debugLog(
-          "[OffHandUpdater] - Compagnon offhand tool set on slot " +
-            EquipmentSlot.Offhand,
-        );
+        debugLog("[OffHandUpdater] - Compagnon offhand tool set on slot " + EquipmentSlot.Offhand);
       } catch (error) {
-        debugLog(
-          `[OffHandUpdater] - Error on setting compagnon offhand tool :` +
-            error,
-        );
+        debugLog(`[OffHandUpdater] - Error on setting compagnon offhand tool :` + error);
       }
     }
   }
@@ -295,11 +246,7 @@ export class CompagnonManager {
     /**
      * @type {import("../functions/checkforBestItem").ItemPurpose[]}
      */
-    const hotbarConfiguration = [
-      "combat",
-      "woodcutting",
-      "mining",
-    ] as ItemPurpose[];
+    const hotbarConfiguration = ["combat", "woodcutting", "mining"] as ItemPurpose[];
 
     for (let i = 0; i < 3; i++) {
       const currentItem = inventoryComponent.container.getItem(i);
@@ -307,25 +254,18 @@ export class CompagnonManager {
         currentItem,
         inventoryComponent.container,
         EquipmentSlot.Mainhand,
-        hotbarConfiguration[i],
+        hotbarConfiguration[i]
       );
 
       if (bestItem.shouldChange && bestItem.index !== undefined) {
-        inventoryComponent.container.swapItems(
-          i,
-          bestItem.index,
-          inventoryComponent.container,
-        );
+        inventoryComponent.container.swapItems(i, bestItem.index, inventoryComponent.container);
         debugLog("[UtilsItemsOrganiser] - Compagnon item set on slot ");
       }
     }
   }
 
   onInventoryUpdate() {
-    debugLog(
-      "[InventoryUpdate] - Compagnon inventory update triggered for " +
-        this._compagnon.name,
-    );
+    debugLog("[InventoryUpdate] - Compagnon inventory update triggered for " + this._compagnon.name);
 
     //  Offhand - Updater
     this.offHandUpdater();
@@ -345,7 +285,7 @@ export class CompagnonManager {
           location?: Vector3;
         }
       | Entity
-      | Vector3,
+      | Vector3
   ) {
     const targetData =
       target && typeof target === "object" && "type" in target
@@ -354,14 +294,9 @@ export class CompagnonManager {
           ? { type: "entity", entity: target }
           : { type: "location", location: target };
 
-    const targetEntity =
-      targetData.type === "entity" ? targetData.entity : null;
+    const targetEntity = targetData.type === "entity" ? targetData.entity : null;
     const targetLocation =
-      targetData.type === "location"
-        ? targetData.location
-        : targetEntity
-          ? targetEntity.location
-          : null;
+      targetData.type === "location" ? targetData.location : targetEntity ? targetEntity.location : null;
 
     if (!targetLocation) {
       debugLog("[move] - Compagnon has no target location");
@@ -369,22 +304,15 @@ export class CompagnonManager {
     }
 
     const currentPosition = this._compagnon.location;
-    const distanceMoved = Vector3Utils.distance(
-      currentPosition,
-      this.mouvement_datas.lastPosition,
-    );
+    const distanceMoved = Vector3Utils.distance(currentPosition, this.mouvement_datas.lastPosition);
     const beingStuckSince = this.mouvement_datas.lastPositionTime;
 
     if (Vector3Utils.distance(currentPosition, targetLocation) < 0.8) {
-      this.mouvement_datas.lastPositionTime =
-        (this.mouvement_datas.lastPositionTime ?? 0) + 1;
+      this.mouvement_datas.lastPositionTime = (this.mouvement_datas.lastPositionTime ?? 0) + 1;
       if (beingStuckSince > 5) {
         debugLog("[move] - Compagnon is stuck applying impluse");
         const direction = Vector3Utils.normalize(
-          Vector3Utils.add(
-            targetLocation,
-            Vector3Utils.scale(this._compagnon.location, -1),
-          ),
+          Vector3Utils.add(targetLocation, Vector3Utils.scale(this._compagnon.location, -1))
         );
         this._compagnon.applyImpulse({
           x: Number.isFinite(direction.x) ? direction.x * 0.5 : 0.5,
@@ -408,16 +336,12 @@ export class CompagnonManager {
   }
 
   private updateNameTag() {
-    const health = this._compagnon.getComponent(
-      EntityComponentTypes.Health,
-    )!.currentValue;
+    const health = this._compagnon.getComponent(EntityComponentTypes.Health)!.currentValue;
 
     const hearts = Math.round(health / 2);
 
     this._compagnon.nameTag =
-      `§l§f${this.compagnon.name}§r\n` +
-      `§c❤ §f${hearts} §7HP§r\n` +
-      `§8✦ owner : §f${this._owner.name}`;
+      `§l§f${this.compagnon.name}§r\n` + `§c❤ §f${hearts} §7HP§r\n` + `§8✦ owner : §f${this._owner.name}`;
   }
 
   //======================================================
@@ -432,18 +356,12 @@ export class CompagnonManager {
 
     if (!this._compagnon.isSleeping) {
       debugLog("[SleepBehavior] - Compagnon need to sleep");
-      const nearestBedArroundPlayer = this._owner.dimension.getBlocks(
-        createCube(this._owner.location, 20),
-        {
-          includeTypes: [MinecraftBlockTypes.Bed],
-        },
-      );
-      const nearestBedArroundBot = this._compagnon.dimension.getBlocks(
-        createCube(this._compagnon.location, 20),
-        {
-          includeTypes: [MinecraftBlockTypes.Bed],
-        },
-      );
+      const nearestBedArroundPlayer = this._owner.dimension.getBlocks(createCube(this._owner.location, 20), {
+        includeTypes: [MinecraftBlockTypes.Bed],
+      });
+      const nearestBedArroundBot = this._compagnon.dimension.getBlocks(createCube(this._compagnon.location, 20), {
+        includeTypes: [MinecraftBlockTypes.Bed],
+      });
 
       let nearestAvailableBed = null;
 
@@ -476,8 +394,7 @@ export class CompagnonManager {
           this._owner.sendMessage("You need to build a bed for your compagnon");
           this.sleep_behavior_data.noBedFoundMessageCooldown = 20 * 10;
         } else {
-          this.sleep_behavior_data.noBedFoundMessageCooldown =
-            this.sleep_behavior_data.noBedFoundMessageCooldown - 1;
+          this.sleep_behavior_data.noBedFoundMessageCooldown = this.sleep_behavior_data.noBedFoundMessageCooldown - 1;
         }
       } else {
         debugLog("[SleepBehavior] - Compagnon Found A bed");
@@ -495,9 +412,7 @@ export class CompagnonManager {
   /**
    * @description Check if Exist an nearest droped item and take it
    */
-  private getNearestDropedItemBehavior(
-    options: Pick<EntityQueryOptions, "maxDistance"> = { maxDistance: 2 },
-  ): boolean {
+  private getNearestDropedItemBehavior(options: Pick<EntityQueryOptions, "maxDistance"> = { maxDistance: 2 }): boolean {
     const nearbyDroppedItems = this._compagnon.dimension
       .getEntities({
         location: this._compagnon.location,
@@ -511,7 +426,7 @@ export class CompagnonManager {
       "[GetNearestDropedItemBehavior] - Compagnon Found " +
         nearbyDroppedItems.length +
         " item(s) in range " +
-        options.maxDistance,
+        options.maxDistance
     );
     this.target_item = nearbyDroppedItems[0];
 
@@ -533,7 +448,7 @@ export class CompagnonManager {
       shouldIgnoreRange,
     }: {
       shouldIgnoreRange: number;
-    } = { shouldIgnoreRange: 10 },
+    } = { shouldIgnoreRange: 10 }
   ): boolean {
     if (!this._ownerEntityTarget) return false;
     if (!this._ownerEntityTarget.isValid) {
@@ -543,7 +458,7 @@ export class CompagnonManager {
     }
     const distanceBetweenOwnerTarget = Vector3Utils.distance(
       this._compagnon.location,
-      this._ownerEntityTarget.location,
+      this._ownerEntityTarget.location
     );
 
     if (distanceBetweenOwnerTarget > shouldIgnoreRange) {
@@ -562,7 +477,7 @@ export class CompagnonManager {
   }
 
   private shouldAttackNearestMonsterMobs(
-    options: Pick<EntityQueryOptions, "maxDistance"> = { maxDistance: 10 },
+    options: Pick<EntityQueryOptions, "maxDistance"> = { maxDistance: 10 }
   ): boolean {
     const hostileMobs = this._compagnon.dimension
       .getEntities({
@@ -575,24 +490,18 @@ export class CompagnonManager {
     if (hostileMobs.length == 0) false;
     const target = hostileMobs[0];
     if (!target || !target.isValid) return false;
-    const distanceBetweenHostile = Vector3Utils.distance(
-      this._compagnon.location,
-      target.location,
-    );
+    const distanceBetweenHostile = Vector3Utils.distance(this._compagnon.location, target.location);
 
     if (distanceBetweenHostile > options.maxDistance!) {
       debugLog("[ShouldAttackNearestMonsterMobs] - Hostile mob is too far");
       return false;
     }
     if (distanceBetweenHostile > 3) {
-      debugLog(
-        "[ShouldAttackNearestMonsterMobs] - Compagnon is navigating to hostile mob",
-      );
+      debugLog("[ShouldAttackNearestMonsterMobs] - Compagnon is navigating to hostile mob");
       this._compagnon.navigateToEntity(target);
     } else {
       debugLog("[ShouldAttackNearestMonsterMobs] - Compagnon is attacking");
-      if (this._compagnon.selectedSlotIndex !== 0)
-        this._compagnon.selectedSlotIndex = 0;
+      if (this._compagnon.selectedSlotIndex !== 0) this._compagnon.selectedSlotIndex = 0;
       this._compagnon.stopMoving();
       this._compagnon.attackEntity(target);
       this._compagnon.lookAtEntity(target, LookDuration.UntilMove);
@@ -606,10 +515,7 @@ export class CompagnonManager {
    */
   private shouldfollowPlayerBehavior(): boolean {
     if (!this._owner.isValid) return false;
-    const distanceBetweenOwner = Vector3Utils.distance(
-      this._compagnon.location,
-      this._owner.location,
-    );
+    const distanceBetweenOwner = Vector3Utils.distance(this._compagnon.location, this._owner.location);
 
     if (distanceBetweenOwner > 15) {
       this._compagnon.teleport(this._owner.location);
@@ -626,22 +532,13 @@ export class CompagnonManager {
   }
 
   private shouldEatBehavior(
-    {
-      shouldEatAt,
-      ShouldEatUntil,
-    }: { shouldEatAt: number; ShouldEatUntil: number } = {
+    { shouldEatAt, ShouldEatUntil }: { shouldEatAt: number; ShouldEatUntil: number } = {
       shouldEatAt: 6,
       ShouldEatUntil: 20,
-    },
+    }
   ): boolean {
-    const hungerComponent = this._compagnon.getComponent(
-      EntityComponentTypes.Hunger,
-    )!;
-    if (
-      hungerComponent.currentValue > shouldEatAt &&
-      !this.eat_behavior_data.startEating
-    )
-      return false;
+    const hungerComponent = this._compagnon.getComponent(EntityComponentTypes.Hunger)!;
+    if (hungerComponent.currentValue > shouldEatAt && !this.eat_behavior_data.startEating) return false;
 
     if (hungerComponent.currentValue >= ShouldEatUntil) {
       debugLog("[ShouldEatBehavior] - Compagnon reach acceptable value");
@@ -656,20 +553,14 @@ export class CompagnonManager {
         debugLog("[ShouldEatBehavior] - Compagnon food finished in slot 8");
         this.eat_behavior_data.startEating = false;
       } else if (!Object.keys(FOOD_SCORES).includes(item.typeId)) {
-        debugLog(
-          "[ShouldEatBehavior] - Compagnon item in slot 8 is not a food",
-        );
+        debugLog("[ShouldEatBehavior] - Compagnon item in slot 8 is not a food");
         this.eat_behavior_data.startEating = false;
       } else {
         debugLog("[ShouldEatBehavior] - Compagnon is eating");
         this._compagnon.useItemInSlot(8);
       }
     } else {
-      const bestFound = checkForBestFood(
-        inventoryContainer.container,
-        false,
-        false,
-      );
+      const bestFound = checkForBestFood(inventoryContainer.container, false, false);
 
       if (!bestFound.foundFood) {
         debugLog("[ShouldEatBehavior] - Compagnon has no food");
@@ -677,11 +568,7 @@ export class CompagnonManager {
       }
 
       if (bestFound.slotIndex! !== 8) {
-        inventoryContainer.container.swapItems(
-          8,
-          bestFound.slotIndex!,
-          inventoryContainer.container,
-        );
+        inventoryContainer.container.swapItems(8, bestFound.slotIndex!, inventoryContainer.container);
       }
       debugLog("[ShouldEatBehavior] - Compagnon swipped found 0p splot 8");
       this.eat_behavior_data.startEating = true;
@@ -690,9 +577,7 @@ export class CompagnonManager {
     return true;
   }
 
-  private shouldAvoidMobsBehavior(
-    props: { maxDistance: number } = { maxDistance: 3 },
-  ): boolean {
+  private shouldAvoidMobsBehavior(props: { maxDistance: number } = { maxDistance: 3 }): boolean {
     const { maxDistance } = props;
 
     const nearestMonster = this._compagnon.dimension.getEntities({
@@ -717,7 +602,7 @@ export class CompagnonManager {
     const safestDirection = safestDirectionFromMob(
       nearestMonster[0].location,
       this._compagnon.location,
-      this._compagnon.dimension,
+      this._compagnon.dimension
     );
 
     if (!safestDirection) return false;
@@ -731,18 +616,15 @@ export class CompagnonManager {
     props: { acceptableHealth: number; critiqueProtectionAt: number } = {
       acceptableHealth: 20,
       critiqueProtectionAt: 6,
-    },
+    }
   ): boolean {
-    const healthComponent = this._compagnon.getComponent(
-      EntityComponentTypes.Health,
-    )!;
+    const healthComponent = this._compagnon.getComponent(EntityComponentTypes.Health)!;
 
     if (healthComponent.currentValue >= props.acceptableHealth) return false;
     debugLog("[ShouldHealBehavior] - Compagnon need to Heal");
 
     // priority 1 eat food
-    if (this.shouldEatBehavior({ shouldEatAt: 19, ShouldEatUntil: 20 }))
-      return true;
+    if (this.shouldEatBehavior({ shouldEatAt: 19, ShouldEatUntil: 20 })) return true;
 
     //priority 2 avoid mob if no found
     if (healthComponent.currentValue <= props.critiqueProtectionAt) {
@@ -755,7 +637,7 @@ export class CompagnonManager {
   private shouldProtectFromCreeperExplosionIfHasShield(
     options: { maxDistance?: number; creeper?: Entity } = {
       maxDistance: 5,
-    },
+    }
   ): boolean {
     let creeper: Entity | null = null;
     if (options.creeper) {
@@ -775,38 +657,24 @@ export class CompagnonManager {
     }
 
     if (creeper == null || !creeper.isValid) {
-      debugLog(
-        "[ShouldProtectFromCreeperExplosionIfHasShield] - Creeper invalid, stopping sneak",
-      );
+      debugLog("[ShouldProtectFromCreeperExplosionIfHasShield] - Creeper invalid, stopping sneak");
       if (this._compagnon.isSneaking) this._compagnon.isSneaking = false;
       return false;
     }
-    debugLog(
-      "[ShouldProtectFromCreeperExplosionIfHasShield] - Compagnon need to protect from creeper explosion",
-    );
-    const hasShield = this.getEquipableComponent().getEquipmentSlot(
-      EquipmentSlot.Offhand,
-    );
+    debugLog("[ShouldProtectFromCreeperExplosionIfHasShield] - Compagnon need to protect from creeper explosion");
+    const hasShield = this.getEquipableComponent().getEquipmentSlot(EquipmentSlot.Offhand);
     try {
-      if (
-        !hasShield ||
-        !hasShield.isValid ||
-        hasShield.typeId !== MinecraftItemTypes.Shield
-      ) {
-        debugLog(
-          "[ShouldProtectFromCreeperExplosionIfHasShield] - No shield equipped",
-        );
+      if (!hasShield || !hasShield.isValid || hasShield.typeId !== MinecraftItemTypes.Shield) {
+        debugLog("[ShouldProtectFromCreeperExplosionIfHasShield] - No shield equipped");
         return false;
       }
     } catch (error) {
       debugLog(
-        "[ShouldProtectFromCreeperExplosionIfHasShield] - Error considering as no shield equiped No shield equipped",
+        "[ShouldProtectFromCreeperExplosionIfHasShield] - Error considering as no shield equiped No shield equipped"
       );
       return false;
     }
-    debugLog(
-      "[ShouldProtectFromCreeperExplosionIfHasShield] - Has shield, looking at creeper and sneaking",
-    );
+    debugLog("[ShouldProtectFromCreeperExplosionIfHasShield] - Has shield, looking at creeper and sneaking");
     this.compagnon.stopMoving();
     this.compagnon.lookAtEntity(creeper, LookDuration.UntilMove);
     this._compagnon.isSneaking = true;
@@ -821,7 +689,7 @@ export class CompagnonManager {
     if (!area || !area.dimension || !area.waypoints) {
       if (!chest.avertissementMade) {
         this.tellOnwer(
-          "No farm area selected , please use a stick renamed to 'cpn' and hit two farmland to deline the farm area",
+          "No farm area selected , please use a stick renamed to 'cpn' and hit two farmland to deline the farm area"
         );
         chest.avertissementMade = true;
       }
@@ -832,7 +700,7 @@ export class CompagnonManager {
     if (!chest.chestPosition) {
       if (!chest.avertissementMade) {
         this.tellOnwer(
-          "You didn't provide the chest to put the crops and seeds in , if my inventory is full i won't be able to farm",
+          "You didn't provide the chest to put the crops and seeds in , if my inventory is full i won't be able to farm"
         );
         chest.avertissementMade = true;
       }
@@ -844,20 +712,14 @@ export class CompagnonManager {
         includeTypes: [MinecraftBlockTypes.Farmland],
       });
 
-    const farmLandLength = Array.from(
-      farmableLandsInArea.getBlockLocationIterator(),
-    ).length;
+    const farmLandLength = Array.from(farmableLandsInArea.getBlockLocationIterator()).length;
 
     if (farmLandLength === 0) {
       if (!area.warnNoFarmLandInAreaSelected) {
-        this.tellOnwer(
-          "No farmland found in the selected area , please select a new area",
-        );
+        this.tellOnwer("No farmland found in the selected area , please select a new area");
         area.warnNoFarmLandInAreaSelected = true;
       }
     }
-
-    
 
     return true;
   }
@@ -887,11 +749,7 @@ export class CompagnonManager {
     });
 
     const monstersMobs = mobs
-      .filter((m) =>
-        m
-          .getComponent(EntityComponentTypes.TypeFamily)
-          ?.hasTypeFamily("monster"),
-      )
+      .filter((m) => m.getComponent(EntityComponentTypes.TypeFamily)?.hasTypeFamily("monster"))
       .sort((a, b) => this.nearestFromCompagnon(a.location, b.location));
 
     const farmableMobs = mobs
@@ -904,10 +762,7 @@ export class CompagnonManager {
       this.target_item = availableStackItem[0];
     } else if (
       monstersMobs.length > 0 &&
-      Vector3Utils.distance(
-        this._compagnon.location,
-        monstersMobs[0].location,
-      ) < 5
+      Vector3Utils.distance(this._compagnon.location, monstersMobs[0].location) < 5
     ) {
       debugLog("[FarmMobBehavior] - Compagnon is fighting a monster");
       this.behavior = "fight";
@@ -919,12 +774,7 @@ export class CompagnonManager {
     } else {
       // If there are no target randomPatrol
       if (this.farming_behavior_datas.checkpoint !== null) {
-        if (
-          Vector3Utils.distance(
-            this._compagnon.location,
-            this.farming_behavior_datas.checkpoint,
-          ) <= 3
-        ) {
+        if (Vector3Utils.distance(this._compagnon.location, this.farming_behavior_datas.checkpoint) <= 3) {
           debugLog("[FarmMobBehavior] - Compagnon resetting checkpoint");
           this.farming_behavior_datas.checkpoint = null;
         } else {
@@ -932,23 +782,14 @@ export class CompagnonManager {
           this.target_location = this.farming_behavior_datas.checkpoint;
         }
       } else {
-        const randomPoint = getRandomPointAround(
-          this._compagnon.location,
-          10,
-          20,
-        );
-        const topBlock = world
-          .getDimension(this._compagnon.dimension.id)
-          .getTopmostBlock({
-            x: randomPoint.x,
-            z: randomPoint.z,
-          });
+        const randomPoint = getRandomPointAround(this._compagnon.location, 10, 20);
+        const topBlock = world.getDimension(this._compagnon.dimension.id).getTopmostBlock({
+          x: randomPoint.x,
+          z: randomPoint.z,
+        });
 
         if (topBlock) {
-          debugLog(
-            "[FarmMobBehavior] - Compagnon setting new checkpoint : " +
-              topBlock.location,
-          );
+          debugLog("[FarmMobBehavior] - Compagnon setting new checkpoint : " + topBlock.location);
           this.farming_behavior_datas.checkpoint = {
             ...topBlock.location,
             y: topBlock.location.y + 1,
@@ -956,9 +797,7 @@ export class CompagnonManager {
           this.behavior = "move_to_location";
           this.target_location = this.farming_behavior_datas.checkpoint;
         } else {
-          debugLog(
-            "[FarmMobBehavior] - Compagnon could not find a valid checkpoint",
-          );
+          debugLog("[FarmMobBehavior] - Compagnon could not find a valid checkpoint");
         }
       }
     }

@@ -118,7 +118,7 @@ export function checkforBestItem(
   currentItem: ItemStack | undefined,
   inventory: Container,
   slot: EquipmentSlot,
-  purpose: ItemPurpose = "combat",
+  purpose: ItemPurpose = "combat"
 ): {
   shouldChange: boolean;
   currentItem?: ItemStack;
@@ -137,7 +137,6 @@ export function checkforBestItem(
 
   // Le Mainhand possède plusieurs catégories d'utilisation.
   if (slot === EquipmentSlot.Mainhand) {
-    //@ts-expect-error
     scores = scores[purpose];
 
     if (!scores) {
@@ -148,7 +147,6 @@ export function checkforBestItem(
     }
   }
 
-  //@ts-expect-error
   const currentScore = currentItem ? (scores[currentItem.typeId] ?? 0) : 0;
 
   let bestItem = currentItem;
@@ -160,7 +158,6 @@ export function checkforBestItem(
 
     if (!item) continue;
 
-    //@ts-expect-error
     const score = scores[item.typeId];
 
     if (score === undefined) continue;

@@ -2,7 +2,6 @@ import { world } from "@minecraft/server";
 import { COMMANDS } from "../constants/Commands";
 import { debugLog } from "../functions/debugLog";
 
-//@ts-expect-error
 world.beforeEvents.chatSend.subscribe((event) => {
   const { sender, message } = event;
 
