@@ -1,0 +1,11 @@
+## Pack informations
+pack.name=My Compagonon
+pack.description=Un compagnon pour vous epauler dans votre survie.
+
+
+## Items
+item.mycompagnon.cpn_guider=Guide du compagnon
+
+## CPM_Guider messages
+message.cpn_guider.dont_have_compagnon=Vous n'avez pas de compagnon , veillez en invoquer un pour commencer
+message.cpm_guider.only_use_on_own_compagnon=Vous ne pouvez controler que votre compagnon
