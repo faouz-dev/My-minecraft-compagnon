@@ -27,7 +27,7 @@ system.runInterval(() => {
 //                DEBUG UTILITES
 // =====================================================
 
-if (isDebug) {
+function devUtilities() {
   world.afterEvents.itemUse.subscribe(({ source, itemStack }) => {
     if (itemStack.typeId !== MinecraftItemTypes.NetheriteShovel) return;
     const compagnon = createCompagnon(source);
@@ -44,17 +44,13 @@ if (isDebug) {
       player.remove();
     }
 
-    for (const {
-      compagnon,
-      player,
-    } of CompagnonDBManager.getAllForExistingPlayer()) {
+    for (const { compagnon, player } of CompagnonDBManager.getAllForExistingPlayer()) {
       const compagnonManager = createCompagnon(player);
-      compagnonManager.compagnon
-        .getComponent(EntityComponentTypes.Health)
-        ?.setCurrentValue(compagnon.health);
+      compagnonManager.compagnon.getComponent(EntityComponentTypes.Health)?.setCurrentValue(compagnon.health);
       compagnonManager.updateBehavior(compagnon.forced_behavior);
     }
   }, 20 * 5);
 }
 
-console.log("successfully started");
+dev: devUtilities();
+dev: console.log("successfully started");

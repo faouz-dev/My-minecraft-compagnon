@@ -1,7 +1,7 @@
 {
   "compilerOptions": {
     "target": "es2020",
-    "lib": ["es2020"],
+    "lib": ["es2020", "DOM"],
     "moduleResolution": "nodenext",
     "module": "nodenext",
     "declaration": false,
