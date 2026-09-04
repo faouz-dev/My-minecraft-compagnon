@@ -19,6 +19,7 @@
   "dependencies": {
     "@minecraft/math": "2.4.0",
     "@minecraft/server": "2.9.0-beta.1.26.30-stable",
+    "@minecraft/server-ui": "2.2.0-beta.1.26.30-stable",
     "@minecraft/server-gametest": "1.0.0-beta.1.26.30-stable",
     "@minecraft/vanilla-data": "1.26.33"
   },
@@ -26,6 +27,7 @@
     "@minecraft/core-build-tasks": "^5.5.0",
     "@typescript-eslint/eslint-plugin": "^8.69.0",
     "@typescript-eslint/parser": "^8.69.0",
+    "javascript-obfuscator": "^4.1.1",
     "eslint-plugin-minecraft-linting": "^2.0.10",
     "source-map": "^0.7.4",
     "ts-node": "^10.9.1",

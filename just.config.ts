@@ -1,4 +1,4 @@
-import { argv, parallel, series, task, tscTask } from "just-scripts";
+import { argv, nodeExecTask, parallel, series, task, tscTask } from "just-scripts";
 import {
   CopyTaskParameters,
   bundleTask,
@@ -72,5 +72,11 @@ task(
 );
 
 // Mcaddon
-task("createMcaddonFile", mcaddonTask(mcaddonTaskOptions));
+task(
+  "obfuscate",
+  nodeExecTask({
+    args: [path.resolve(__dirname, "./tasks/obfuscate.js")],
+  })
+);
+task("createMcaddonFile", series("obfuscate", mcaddonTask(mcaddonTaskOptions)));
 task("mcaddon", series("clean-local", "build", "createMcaddonFile"));

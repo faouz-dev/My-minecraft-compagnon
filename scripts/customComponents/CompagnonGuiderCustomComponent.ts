@@ -11,6 +11,7 @@ import { COMPAGNON_TYPE } from "../constants/compagnonType";
 import { Vector3Utils } from "@minecraft/math";
 import { COMPAGNONS } from "../constants";
 import { debugLog } from "../functions";
+import { UIMenuCommandsManager } from "../class/UIMenuCommandsManager";
 
 export class CompagnonGuiderCustomComponent implements ItemCustomComponent {
   constructor() {
@@ -60,6 +61,7 @@ export class CompagnonGuiderCustomComponent implements ItemCustomComponent {
             return source.sendMessage({ translate: "message.cpm_guider.only_use_on_own_compagnon" });
           }
           debugLog("[CompagnonGuiderCustomComponent] Using on his compagnon");
+          UIMenuCommandsManager.openMenu(source);
         }
         break;
       case "block":

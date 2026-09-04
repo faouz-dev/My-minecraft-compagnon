@@ -4,7 +4,11 @@ import { MinecraftItemTypes } from "@minecraft/vanilla-data";
 
 // Init commands
 import "./commands/index";
-console.log("commands initialised");
+debugLog("commands initialised");
+
+// Init IMenu Commands
+import "./uiMenuCommands/index";
+debugLog("IMenu commands initialised");
 
 // Init events
 import "./events/index";
@@ -12,7 +16,7 @@ import { createCompagnon } from "./functions/createCompagnon";
 import { isDebug } from "./constants/isDebug";
 import { debugLog } from "./functions/debugLog";
 import { CompagnonDBManager } from "./class/CompagnonDBManager";
-console.log("events initialised");
+debugLog("events initialised");
 
 system.runInterval(() => {
   // Compagnons behavior
