@@ -11,10 +11,10 @@ export class UIMenuCommandsManager {
     const commands = UIMenuCommands.filter((command) => command.parent === parent);
     if (commands.length == 0) {
       const messageBoxForm = new MessageFormData();
-      messageBoxForm.title({ translate: "global.error" });
-      messageBoxForm.body({ translate: "global.error" });
-      messageBoxForm.button1({ translate: "global.back" });
-      messageBoxForm.button2({ translate: "global.close" });
+      messageBoxForm.title({ translate: "global.mycompagnon:error" });
+      messageBoxForm.body({ translate: "global.mycompagnon:error" });
+      messageBoxForm.button1({ translate: "global.mycompagnon:back" });
+      messageBoxForm.button2({ translate: "global.mycompagnon:close" });
 
       messageBoxForm.show(player).then((response) => {
         if (response.selection === 0) {

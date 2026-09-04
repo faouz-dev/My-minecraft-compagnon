@@ -21,7 +21,7 @@ export class CompagnonGuiderCustomComponent implements ItemCustomComponent {
   getCompagnonsOrPreventIfDontHave(player: Player) {
     const haveCompagnon = COMPAGNONS.get(player.id);
     if (!haveCompagnon) {
-      player.sendMessage({ translate: "message.cpn_guider.dont_have_compagnon" });
+      player.sendMessage({ translate: "message.mycompagnon:staff_of_authority.dont_have_compagnon" });
       return false;
     }
     return haveCompagnon;
@@ -58,7 +58,7 @@ export class CompagnonGuiderCustomComponent implements ItemCustomComponent {
           const isHisCompagnon = entity.id === compagnon.compagnon.id;
           if (!isHisCompagnon) {
             debugLog("[CompagnonGuiderCustomComponent] Not his compagnon");
-            return source.sendMessage({ translate: "message.cpm_guider.only_use_on_own_compagnon" });
+            return source.sendMessage({ translate: "message.mycompagnon:staff_of_authority.only_use_on_own_compagnon" });
           }
           debugLog("[CompagnonGuiderCustomComponent] Using on his compagnon");
           UIMenuCommandsManager.openMenu(source);

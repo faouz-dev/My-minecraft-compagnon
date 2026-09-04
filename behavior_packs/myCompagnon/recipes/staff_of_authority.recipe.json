@@ -2,10 +2,10 @@
   "format_version": "1.20.10",
   "minecraft:recipe_shaped": {
     "description": {
-      "identifier": "mycompagnon:cpn_guider"
+      "identifier": "mycompagnon:staff_of_authority"
     },
     "tags": ["crafting_table"],
-    "pattern": ["  D", " G ", "B  "],
+    "pattern": ["  D", "IGI", "B  "],
     "key": {
       "D": {
         "item": "minecraft:diamond"
@@ -15,10 +15,13 @@
       },
       "G": {
         "item": "minecraft:gold_ingot"
+      },
+      "I": {
+        "item": "minecraft:iron_ingot"
       }
     },
     "result": {
-      "item": "mycompagnon:cpn_guider",
+      "item": "mycompagnon:staff_of_authority",
       "count": 1
     },
     "unlock": {

@@ -3,33 +3,33 @@ pack.name=My Compagonon
 pack.description=Un compagnon pour vous epauler dans votre survie.
 
 ## Global
-global.error= Erreur
-global.close= Fermer
-global.cancel= Annuler
-global.confirm= Confirmer
-global.yes= Oui
-global.no= Non
-global.ok= Ok
-global.back= Retour
-global.next= Suivant
-global.previous= Précédent
-global.select= Selectionner
-global.select_all= Selectionner tout
-global.deselect_all= Désélectionner tout
+global.mycompagnon:error= Erreur
+global.mycompagnon:close= Fermer
+global.mycompagnon:cancel= Annuler
+global.mycompagnon:confirm= Confirmer
+global.mycompagnon:yes= Oui
+global.mycompagnon:no= Non
+global.mycompagnon:ok= Ok
+global.mycompagnon:back= Retour
+global.mycompagnon:next= Suivant
+global.mycompagnon:previous= Précédent
+global.mycompagnon:select= Selectionner
+global.mycompagnon:select_all= Selectionner tout
+global.mycompagnon:deselect_all= Désélectionner tout
 
 ## Item
-item.mycompagnon.cpn_guider=Guide du compagnon
+item.mycompagnon:staff_of_authority.name=Bâton d'autorité
 
 ## Behavior labels
-behavior.follow_player= Me suivre uniquement
-behavior.default=libre de choix
-behavior.mobs_farming= Chasser les mobs
-crop_farming= Cultiver les cultures
+behavior.mycompagnon:follow_player= Me suivre uniquement
+behavior.mycompagnon:default=libre de choix
+behavior.mycompagnon:mobs_farming= Chasser les mobs
+behavior.mycompagnon:crop_farming= Cultiver les cultures
 
 
 ## CPM_Guider messages
-message.cpn_guider.dont_have_compagnon=Vous n'avez pas de compagnon , veillez en invoquer un pour commencer
-message.cpm_guider.only_use_on_own_compagnon=Vous ne pouvez controler que votre compagnon
+message.mycompagnon:staff_of_authority.dont_have_compagnon=Vous n'avez pas de compagnon , veillez en invoquer un pour commencer
+message.mycompagnon:staff_of_authority.only_use_on_own_compagnon=Vous n'avez d'autorité  que sur votre compagnon
 
 ## UIMenu Commands
-command.uimenu.command_not_found_error_message=Il semble que cette option n'est pas disponible
+uimenu_command.mycompagnon:command_not_found_error_message=Il semble que cette option n'est pas disponible

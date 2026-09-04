@@ -6,15 +6,15 @@ registerUIMenuCommand({
   description: "Update compagnon behavior",
   options: [
     {
-      label: "behavior.default",
+      label: "behavior.mycompagnon:default",
       value: "default",
     },
     {
-      label: "behavior.follow_player",
+      label: "behavior.mycompagnon:follow_player",
       value: "follow_player",
     },
     {
-      label: "crop_farming",
+      label: "behavior.mycompagnon:crop_farming",
       value: "crop_farming",
     },
   ] as { label: string; value: ForcedBehavior }[],

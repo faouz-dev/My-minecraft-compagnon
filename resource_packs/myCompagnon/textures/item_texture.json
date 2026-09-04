@@ -1,8 +1,8 @@
 {
   "resource_pack_name": "My Compagnon Resource Pack",
   "texture_data": {
-    "mycompagnon:cpn_guider": {
-      "textures": "textures/items/cpn_guider"
+    "mycompagnon:staff_of_authority": {
+      "textures": "textures/items/staff_of_authority"
     }
   }
 }
