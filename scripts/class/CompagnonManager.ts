@@ -89,14 +89,14 @@ export class CompagnonManager {
       | undefined;
     chest: {
       chestPosition: Vector3 | undefined;
-      chestContainerComponents: BlockComponentReturnType<BlockComponentTypes.Inventory> | undefined;
+      chest: Block | undefined;
       avertissementMade: boolean;
     };
   } = {
     area: undefined,
     chest: {
       chestPosition: undefined,
-      chestContainerComponents: undefined,
+      chest: undefined,
       avertissementMade: false,
     },
   };
@@ -375,7 +375,7 @@ export class CompagnonManager {
       debugLog("[isFarmAreaSelected] - Compagnon is selecting chest");
       this.crop_farming_behavior_data.chest = {
         chestPosition: block.location,
-        chestContainerComponents: block.getComponent(BlockComponentTypes.Inventory)!,
+        chest: block,
         avertissementMade: false,
       };
     } else {
@@ -743,7 +743,8 @@ export class CompagnonManager {
       }
     }
 
-    if (creeper == null || !creeper.isValid) {
+    if (!creeper) return false;
+    if (creeper && !creeper.isValid) {
       debugLog("[ShouldProtectFromCreeperExplosionIfHasShield] - Creeper invalid, stopping sneak");
       if (this._compagnon.isSneaking) this._compagnon.isSneaking = false;
       return false;
@@ -784,12 +785,11 @@ export class CompagnonManager {
       return false;
     }
 
-    let SpawnAt!: Vector3;
+    let SpawnAt: Vector3 | null = null;
 
     // Verify if it's accessible
     if (container.typeId === MinecraftBlockTypes.Chest) {
       const possibleChestBlocks = findDoubleChestBlocks(container);
-      let availableSlot = -1;
 
       for (const possibleChest of possibleChestBlocks) {
         const blockAtTop = this._compagnon.dimension.getBlock(Vector3Utils.add(possibleChest.location, { y: 1 }));
@@ -807,7 +807,6 @@ export class CompagnonManager {
         {}
       );
 
-      let founded = false;
       for (const blockPosition of nearestBlock.getBlockLocationIterator()) {
         const y_add = blockPosition === container.location ? +1 : 0;
         const blockAtTop = this._compagnon.dimension.getBlock(Vector3Utils.add(blockPosition, { y: y_add + 1 }));
@@ -819,16 +818,16 @@ export class CompagnonManager {
           block.typeId == MinecraftBlockTypes.Air
         ) {
           SpawnAt = blockPosition;
-          founded = true;
           break;
         }
       }
+      
+    }
 
-      if (!founded) {
-        debugLog("[ShouldPutItemIntoContainer] - No place to spawn the barrel");
-        this.tellOwner("message.mycompagnon:compagnon.cant_open_container");
-        return false;
-      }
+    if (!SpawnAt) {
+      debugLog("[ShouldPutItemIntoContainer] - No place to spawn the barrel");
+      this.tellOwner("message.mycompagnon:compagnon.cant_access_container");
+      return false;
     }
 
     // Verify if container is Empty
@@ -883,6 +882,9 @@ export class CompagnonManager {
         this.crop_farming_behavior_data.area = undefined;
       }
     }
+
+    // Priority 1 : put farmedItemInInventory
+    if (chest.chest) if (this.shouldPutItemIntoContainer({ container: chest.chest })) return true;
 
     return true;
   }
