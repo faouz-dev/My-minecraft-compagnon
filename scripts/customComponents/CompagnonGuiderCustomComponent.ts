@@ -58,10 +58,12 @@ export class CompagnonGuiderCustomComponent implements ItemCustomComponent {
           const isHisCompagnon = entity.id === compagnon.compagnon.id;
           if (!isHisCompagnon) {
             debugLog("[CompagnonGuiderCustomComponent] Not his compagnon");
-            return source.sendMessage({ translate: "message.mycompagnon:staff_of_authority.only_use_on_own_compagnon" });
+            return source.sendMessage({
+              translate: "message.mycompagnon:staff_of_authority.only_use_on_own_compagnon",
+            });
           }
           debugLog("[CompagnonGuiderCustomComponent] Using on his compagnon");
-          UIMenuCommandsManager.openMenu(source);
+          UIMenuCommandsManager.openMenu(source, compagnon);
         }
         break;
       case "block":

@@ -170,6 +170,7 @@ export class CompagnonManager {
     CompagnonDBManager.updateCompagnonData(this._owner, {
       forced_behavior: behavior,
     });
+    this._owner.sendMessage({ translate: "message.mycompagnon:compagnon.behavior_updated" });
     debugLog(`Compagnon behavior updated to ${behavior}`);
   }
 

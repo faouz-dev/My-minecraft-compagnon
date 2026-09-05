@@ -1,4 +1,5 @@
-import { ForcedBehavior } from "../class/CompagnonManager";
+import { Player } from "@minecraft/server";
+import { CompagnonManager, ForcedBehavior } from "../class/CompagnonManager";
 import { registerUIMenuCommand } from "../functions/registerUIMenuCommand.";
 
 registerUIMenuCommand({
@@ -18,8 +19,8 @@ registerUIMenuCommand({
       value: "crop_farming",
     },
   ] as { label: string; value: ForcedBehavior }[],
-  type: "select_many",
-  callback: function (value: string): void {
-    throw new Error("Function not implemented.");
+  type: "select",
+  callback: function (player: Player, compagnon: CompagnonManager, value: unknown): void {
+    compagnon.updateBehavior(value as ForcedBehavior);
   },
 });

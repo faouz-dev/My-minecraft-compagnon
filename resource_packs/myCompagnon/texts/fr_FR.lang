@@ -28,8 +28,12 @@ behavior.mycompagnon:crop_farming= Cultiver les cultures
 
 
 ## CPM_Guider messages
-message.mycompagnon:staff_of_authority.dont_have_compagnon=Vous n'avez pas de compagnon , veillez en invoquer un pour commencer
-message.mycompagnon:staff_of_authority.only_use_on_own_compagnon=Vous n'avez d'autorité  que sur votre compagnon
+message.mycompagnon:staff_of_authority.dont_have_compagnon=§cVous n'avez pas de compagnon , veillez en invoquer un pour commencer
+message.mycompagnon:staff_of_authority.only_use_on_own_compagnon=§cVous n'avez d'autorité  que sur votre compagnon
+
+
+## Informations Message
+message.mycompagnon:compagnon.behavior_updated=§6Le comportement de votre compagnon a été mis à jour
 
 ## UIMenu Commands
 uimenu_command.mycompagnon:command_not_found_error_message=Il semble que cette option n'est pas disponible
