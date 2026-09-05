@@ -12,11 +12,18 @@ import {
   EntityType,
   EntityTypes,
   type Vector3,
+  type Block,
   BlockVolumeBase,
   type EntityQueryOptions,
   type EntityComponentReturnType,
   Dimension,
   BlockVolume,
+  RawMessage,
+  BlockComponentTypes,
+  BlockComponentReturnType,
+  EffectTypes,
+  EffectType,
+  system,
 } from "@minecraft/server";
 import { getPlayerSkin, LookDuration, SimulatedPlayer } from "@minecraft/server-gametest";
 import { Vector2Utils, Vector3Utils } from "@minecraft/math";
@@ -28,6 +35,7 @@ import { getRandomPointAround } from "../functions/getRandomPointAround";
 import {
   MinecraftBlockTypes,
   MinecraftDimensionTypes,
+  MinecraftEffectTypes,
   MinecraftEntityTypes,
   MinecraftItemTypes,
 } from "@minecraft/vanilla-data";
@@ -79,7 +87,7 @@ export class CompagnonManager {
       | undefined;
     chest: {
       chestPosition: Vector3 | undefined;
-      chestContainerComponents: EntityComponentReturnType<"minecraft:inventory"> | undefined;
+      chestContainerComponents: BlockComponentReturnType<BlockComponentTypes.Inventory> | undefined;
       avertissementMade: boolean;
     };
   } = {
@@ -90,6 +98,8 @@ export class CompagnonManager {
       avertissementMade: false,
     },
   };
+
+  private is_selecting_farm_area_datas: { p1: Vector3 | null; p2: Vector3 | null } = { p1: null, p2: null };
 
   //=================================================
   // #endregion Variable Declaration
@@ -133,6 +143,10 @@ export class CompagnonManager {
   //======================================================
   // #endregion Getters and Setters
   //======================================================
+
+  // =====================================================
+  // #region Utilites
+  // =====================================================
 
   private config() {
     // Set Skin
@@ -190,8 +204,8 @@ export class CompagnonManager {
     return this._compagnon.getComponent(EntityComponentTypes.Equippable)!;
   }
 
-  private tellOnwer(message: string) {
-    this._owner.sendMessage(`§8[§b${this._compagnon.name}§8] §7→ §r${message}`);
+  private tellOwner(message: string) {
+    this._owner.sendMessage([`§l§u[${this._compagnon.name}]§r§e=>§r`, { translate: message }]);
   }
 
   /**
@@ -220,7 +234,7 @@ export class CompagnonManager {
   }
 
   /**
-   * @description - Update the offhand tool behavior
+   * @description - Update the offhand's tool
    */
   private offHandUpdater() {
     const equipableComponent = this.getEquipableComponent();
@@ -265,6 +279,9 @@ export class CompagnonManager {
     }
   }
 
+  /**
+   * @description - this function is called whenever compagnon's inventory get updated
+   */
   onInventoryUpdate() {
     debugLog("[InventoryUpdate] - Compagnon inventory update triggered for " + this._compagnon.name);
 
@@ -344,6 +361,73 @@ export class CompagnonManager {
     this._compagnon.nameTag =
       `§l§f${this.compagnon.name}§r\n` + `§c❤ §f${hearts} §7HP§r\n` + `§8✦ owner : §f${this._owner.name}`;
   }
+
+  /**
+   * @description - this function is called when the staff of autority is used on block to verify if it's selecting farm area
+   */
+  public isSelectingFarmArea(block: Block): boolean {
+    if (this.forced_behavior !== "crop_farming") return false;
+    debugLog("[isFarmAreaSelected] - Compagnon is in farm area selection mode");
+
+    if (block && block.type.id === MinecraftBlockTypes.Chest) {
+      debugLog("[isFarmAreaSelected] - Compagnon is selecting chest");
+      this.crop_farming_behavior_data.chest = {
+        chestPosition: block.location,
+        chestContainerComponents: block.getComponent(BlockComponentTypes.Inventory)!,
+        avertissementMade: false,
+      };
+    } else {
+      if (this.is_selecting_farm_area_datas.p1) {
+        debugLog("[isFarmAreaSelected] - Compagnon is selecting p2");
+        // Reset farming behavior datas
+        this.crop_farming_behavior_data.area = {
+          dimension: this._owner.dimension.id as MinecraftDimensionTypes,
+          waypoints: { p1: this.is_selecting_farm_area_datas.p1!, p2: block.location },
+          warnNoAreaProvided: false,
+          warnNoFarmLandInAreaSelected: false,
+        };
+        const LimitsBlock: Vector3[] = [];
+        for (let i = 0; i < Math.abs(this.is_selecting_farm_area_datas.p1.x - block.location.x); i++) {
+          const x =
+            this.is_selecting_farm_area_datas.p1.x < block.location.x
+              ? this.is_selecting_farm_area_datas.p1.x + i
+              : this.is_selecting_farm_area_datas.p1.x - i;
+          LimitsBlock.push({ x, y: this.is_selecting_farm_area_datas.p1.y, z: this.is_selecting_farm_area_datas.p1.z });
+        }
+        for (let i = 0; i < Math.abs(this.is_selecting_farm_area_datas.p1.z - block.location.z); i++) {
+          const z =
+            this.is_selecting_farm_area_datas.p1.z < block.location.z
+              ? this.is_selecting_farm_area_datas.p1.z + i
+              : this.is_selecting_farm_area_datas.p1.z - i;
+          LimitsBlock.push({ x: this.is_selecting_farm_area_datas.p1.x, y: this.is_selecting_farm_area_datas.p1.y, z });
+        }
+
+        const interval = system.runInterval(() => {
+          LimitsBlock.forEach((block) => {
+            this._owner.dimension.spawnParticle("minecraft:villager_happy", {
+              ...block,
+              y: block.y + 1.5,
+            });
+          });
+        }, 5);
+
+        system.runTimeout(() => {
+          system.clearRun(interval);
+        }, 1 * 20);
+
+        debugLog("[isFarmAreaSelected] -Farm area selected");
+      } else {
+        this.is_selecting_farm_area_datas.p1 = block.location;
+        debugLog("[isFarmAreaSelected] - Compagnon is selected p1 : " + JSON.stringify(block.location, undefined, 1));
+      }
+    }
+
+    return true;
+  }
+
+  // ======================================================
+  // #endregion - Utilities
+  // ======================================================
 
   //======================================================
   // #region - CONSTITUTIONNAL BEHAVIORS
@@ -689,9 +773,7 @@ export class CompagnonManager {
     // Case farming area in zone
     if (!area || !area.dimension || !area.waypoints) {
       if (!chest.avertissementMade) {
-        this.tellOnwer(
-          "No farm area selected , please use a stick renamed to 'cpn' and hit two farmland to deline the farm area"
-        );
+        this.tellOwner("message.mycompagnon:compagnon.no_farm_area_selected");
         chest.avertissementMade = true;
       }
       return false;
@@ -700,9 +782,7 @@ export class CompagnonManager {
     // warn but farm anyway if chest not set
     if (!chest.chestPosition) {
       if (!chest.avertissementMade) {
-        this.tellOnwer(
-          "You didn't provide the chest to put the crops and seeds in , if my inventory is full i won't be able to farm"
-        );
+        this.tellOwner("message.mycompagnon:compagnon.no_farm_chest_selected");
         chest.avertissementMade = true;
       }
     }
@@ -717,8 +797,9 @@ export class CompagnonManager {
 
     if (farmLandLength === 0) {
       if (!area.warnNoFarmLandInAreaSelected) {
-        this.tellOnwer("No farmland found in the selected area , please select a new area");
+        this.tellOwner("message.mycompagnon:compagnon.no_farmland_in_area_selected");
         area.warnNoFarmLandInAreaSelected = true;
+        this.crop_farming_behavior_data.area = undefined;
       }
     }
 
@@ -848,6 +929,9 @@ export class CompagnonManager {
 
     // Priority 6 : attack nearest mob
     if (this.shouldAttackNearestMonsterMobs({ maxDistance: 5 })) return;
+
+    // Priority 7 : Farm
+    if (this.shouldFarmCropBehavior()) return;
   }
 
   // ====================================================================

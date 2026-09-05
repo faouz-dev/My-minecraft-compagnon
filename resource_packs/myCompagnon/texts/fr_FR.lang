@@ -1,8 +1,8 @@
-## Pack informations
+####region Pack informations
 pack.name=My Compagonon
 pack.description=Un compagnon pour vous epauler dans votre survie.
 
-## Global
+####region Global
 global.mycompagnon:error= Erreur
 global.mycompagnon:close= Fermer
 global.mycompagnon:cancel= Annuler
@@ -17,23 +17,27 @@ global.mycompagnon:select= Selectionner
 global.mycompagnon:select_all= Selectionner tout
 global.mycompagnon:deselect_all= Désélectionner tout
 
-## Item
+####region Item
 item.mycompagnon:staff_of_authority.name=Bâton d'autorité
 
-## Behavior labels
+####region Behavior labels
 behavior.mycompagnon:follow_player= Me suivre uniquement
 behavior.mycompagnon:default=libre de choix
 behavior.mycompagnon:mobs_farming= Chasser les mobs
 behavior.mycompagnon:crop_farming= Cultiver les cultures
 
 
-## CPM_Guider messages
+####region  CPM_Guider messages
 message.mycompagnon:staff_of_authority.dont_have_compagnon=§cVous n'avez pas de compagnon , veillez en invoquer un pour commencer
 message.mycompagnon:staff_of_authority.only_use_on_own_compagnon=§cVous n'avez d'autorité  que sur votre compagnon
 
+###region  Compagnon Message
+message.mycompagnon:compagnon.no_farm_area_selected=Vous n'avez pas selectionné de zone de culture, Veillez utiliser le bâton d'autorité pour delimiter deux point de la zone de cultures
+message.mycompagnon:compagnon.no_farm_chest_selected=Vous n'avez pas sélectionné de coffre pour déposer les cultures et les graines. Si mon inventaire est plein, je ne pourrai plus cultiver
+message.mycompagnon:compagnon.no_farmland_in_area_selected=Aucune terre labourée n'a été trouvée dans la zone sélectionnée. Veuillez sélectionner une nouvelle zone
 
-## Informations Message
+####region  Informations Message
 message.mycompagnon:compagnon.behavior_updated=§6Le comportement de votre compagnon a été mis à jour
 
-## UIMenu Commands
+####region  UIMenu Commands
 uimenu_command.mycompagnon:command_not_found_error_message=Il semble que cette option n'est pas disponible

@@ -52,9 +52,9 @@ export class CompagnonGuiderCustomComponent implements ItemCustomComponent {
         const entity = useOnEntity[0].entity;
         // TODO: Use on entity
         debugLog("[CompagnonGuiderCustomComponent] Using on an entity : " + entity.id);
-        const haveCompagnon = this.getCompagnonsOrPreventIfDontHave(source);
-        if (haveCompagnon) {
-          const compagnon = haveCompagnon;
+        const compagnonbehavior = this.getCompagnonsOrPreventIfDontHave(source);
+        if (compagnonbehavior) {
+          const compagnon = compagnonbehavior;
           const isHisCompagnon = entity.id === compagnon.compagnon.id;
           if (!isHisCompagnon) {
             debugLog("[CompagnonGuiderCustomComponent] Not his compagnon");
@@ -70,6 +70,12 @@ export class CompagnonGuiderCustomComponent implements ItemCustomComponent {
         // TODO: Use on block
         const block = useOnBlock!.block;
         debugLog("[CompagnonGuiderCustomComponent] Using on a block : " + block.typeId);
+        const existCompagnon = this.getCompagnonsOrPreventIfDontHave(source);
+        if (existCompagnon) {
+          const CompagnonManager = existCompagnon;
+          if (CompagnonManager.isSelectingFarmArea(block)) break;
+        }
+
         break;
       default:
         debugLog("[CompagnonGuiderCustomComponent] No target");
