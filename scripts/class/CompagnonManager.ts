@@ -47,6 +47,7 @@ import { isDebug } from "../constants/isDebug";
 import { safestDirectionFromMob } from "../functions/safestDirectionFromMob";
 import { roundDirection } from "../functions/roundDirection";
 import { findDoubleChestBlocks } from "../functions/findDoubleChestBlocks";
+import { findSeedInInventory } from "../functions/findSeedInInventory";
 
 export type ForcedBehavior = "default" | "follow_player" | "mobs_farming" | "crop_farming";
 
@@ -260,10 +261,7 @@ export class CompagnonManager {
     const inventoryComponent = this.getInventoryComponent();
     const equipableComponent = this.getEquipableComponent();
 
-    /**
-     * @type {import("../functions/checkforBestItem").ItemPurpose[]}
-     */
-    const hotbarConfiguration = ["combat", "woodcutting", "mining"] as ItemPurpose[];
+    const hotbarConfiguration: ItemPurpose[] = ["combat", "woodcutting", "mining", "farming"] as ItemPurpose[];
 
     for (let i = 0; i < 3; i++) {
       const currentItem = inventoryComponent.container.getItem(i);
@@ -821,7 +819,6 @@ export class CompagnonManager {
           break;
         }
       }
-      
     }
 
     if (!SpawnAt) {
@@ -884,7 +881,53 @@ export class CompagnonManager {
     }
 
     // Priority 1 : put farmedItemInInventory
-    if (chest.chest) if (this.shouldPutItemIntoContainer({ container: chest.chest })) return true;
+    // if (chest.chest) if (this.shouldPutItemIntoContainer({ container: chest.chest })) return true;
+
+    // Priority 2 : put searchForSeed
+    const compagnonContainer = this.getInventoryComponent();
+    const seedExist = findSeedInInventory(compagnonContainer);
+    if (!seedExist) {
+      // TODO search Seed in Chest
+      debugLog("[ShouldFarmCrop] - No seed found in inventory");
+      return false;
+    } else {
+      this.getInventoryComponent().container.swapItems(seedExist.slot, 5, compagnonContainer.container);
+      debugLog("[ShouldFarmCrop] - " + seedExist.item.amount + " Seed found in inventory : " + seedExist.item.typeId);
+    }
+
+    // priority 3 : put crop in Empty Farmland
+    const emptyFarmLand: Block[] = [];
+    for (const blockPosition of farmableLandsInArea.getBlockLocationIterator()) {
+      const block = world.getDimension(area.dimension).getBlock(blockPosition);
+      if (block && block.above()?.typeId == MinecraftBlockTypes.Air) {
+        emptyFarmLand.push(block);
+      }
+    }
+
+    if (emptyFarmLand.length > 0) {
+      debugLog("[ShouldFarmCrop] - Empty Farmland found : " + emptyFarmLand.length);
+      const block = emptyFarmLand[0];
+      if (Vector3Utils.distance(this._compagnon.location, block.location) <= 3) {
+        this._compagnon.stopMoving();
+        this.compagnon.lookAtBlock(block, LookDuration.Instant);
+        const seed = compagnonContainer.container.getItem(5);
+        if (seed) {
+          const success = this._compagnon.useItemOnBlock(seed!, block.location);
+          if (success) {
+            if (seed!.amount > 1) {
+              compagnonContainer.container.setItem(5, new ItemStack(seed.type, seed.amount - 1));
+            } else {
+              compagnonContainer.container.setItem(5, undefined);
+            }
+          }
+        } else {
+          this.compagnon.moveToBlock(block.location, { speed: 1 });
+          this.compagnon.lookAtBlock(block, LookDuration.Instant);
+        }
+      }
+    }
+
+    // Priority 4 : recolte if there are
 
     return true;
   }
