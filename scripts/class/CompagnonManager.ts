@@ -1,4 +1,5 @@
 import {
+  Block,
   Player,
   world,
   Entity,
@@ -12,7 +13,6 @@ import {
   EntityType,
   EntityTypes,
   type Vector3,
-  type Block,
   BlockVolumeBase,
   type EntityQueryOptions,
   type EntityComponentReturnType,
@@ -24,6 +24,7 @@ import {
   EffectTypes,
   EffectType,
   system,
+  BlockInventoryComponent,
 } from "@minecraft/server";
 import { getPlayerSkin, LookDuration, SimulatedPlayer } from "@minecraft/server-gametest";
 import { Vector2Utils, Vector3Utils } from "@minecraft/math";
@@ -45,6 +46,7 @@ import { checkForBestFood, FOOD_SCORES } from "../functions/checkForBestFood";
 import { isDebug } from "../constants/isDebug";
 import { safestDirectionFromMob } from "../functions/safestDirectionFromMob";
 import { roundDirection } from "../functions/roundDirection";
+import { findDoubleChestBlocks } from "../functions/findDoubleChestBlocks";
 
 export type ForcedBehavior = "default" | "follow_player" | "mobs_farming" | "crop_farming";
 
@@ -184,7 +186,7 @@ export class CompagnonManager {
     CompagnonDBManager.updateCompagnonData(this._owner, {
       forced_behavior: behavior,
     });
-    this._owner.sendMessage({ translate: "message.mycompagnon:compagnon.behavior_updated" });
+    this._owner.sendMessage({ translate: "info.mycompagnon:compagnon.behavior_updated" });
     debugLog(`Compagnon behavior updated to ${behavior}`);
   }
 
@@ -763,6 +765,85 @@ export class CompagnonManager {
     this.compagnon.stopMoving();
     this.compagnon.lookAtEntity(creeper, LookDuration.UntilMove);
     this._compagnon.isSneaking = true;
+
+    return true;
+  }
+
+  private shouldPutItemIntoContainer(props: {
+    force?: boolean;
+    clear?: boolean;
+    container: Block;
+    filter?: (item: ItemStack) => boolean;
+  }): boolean {
+    let { container } = props;
+
+    // verify if is an block with  container
+    const inventoryComponent = container.getComponent(BlockComponentTypes.Inventory);
+    if (!inventoryComponent) {
+      debugLog("[ShouldPutItemIntoContainer] - Container is not a container");
+      return false;
+    }
+
+    let SpawnAt!: Vector3;
+
+    // Verify if it's accessible
+    if (container.typeId === MinecraftBlockTypes.Chest) {
+      const possibleChestBlocks = findDoubleChestBlocks(container);
+      let availableSlot = -1;
+
+      for (const possibleChest of possibleChestBlocks) {
+        const blockAtTop = this._compagnon.dimension.getBlock(Vector3Utils.add(possibleChest.location, { y: 1 }));
+        if (blockAtTop && blockAtTop.typeId !== MinecraftBlockTypes.Air) {
+          this.tellOwner("message.mycompagnon:compagnon.cant_open_container");
+          return false;
+        }
+      }
+    } else if (container.typeId === MinecraftBlockTypes.Barrel) {
+      const nearestBlock = this._compagnon.dimension.getBlocks(
+        new BlockVolume(
+          Vector3Utils.add(container.location, { z: -1, x: -1 }),
+          Vector3Utils.add(container.location, { z: 1, x: 1 })
+        ),
+        {}
+      );
+
+      let founded = false;
+      for (const blockPosition of nearestBlock.getBlockLocationIterator()) {
+        const y_add = blockPosition === container.location ? +1 : 0;
+        const blockAtTop = this._compagnon.dimension.getBlock(Vector3Utils.add(blockPosition, { y: y_add + 1 }));
+        const block = this._compagnon.dimension.getBlock(Vector3Utils.add(blockPosition, { y: y_add }));
+        if (
+          blockAtTop &&
+          blockAtTop.typeId !== MinecraftBlockTypes.Air &&
+          block &&
+          block.typeId == MinecraftBlockTypes.Air
+        ) {
+          SpawnAt = blockPosition;
+          founded = true;
+          break;
+        }
+      }
+
+      if (!founded) {
+        debugLog("[ShouldPutItemIntoContainer] - No place to spawn the barrel");
+        this.tellOwner("message.mycompagnon:compagnon.cant_open_container");
+        return false;
+      }
+    }
+
+    // Verify if container is Empty
+    if (inventoryComponent.container!.emptySlotsCount == 0) {
+      debugLog("[ShouldPutItemIntoContainer] - Container is not empty");
+      return false;
+    }
+
+    // try teleport to point
+    this._compagnon.tryTeleport(SpawnAt);
+
+    this._compagnon.lookAtBlock(container, LookDuration.UntilMove);
+    this._compagnon.interactWithBlock(container);
+
+    return true;
 
     return true;
   }

@@ -4,6 +4,7 @@ export * from './createCompagnon';
 export * from './createCube';
 export * from './debugLog';
 export * from './getRandomPointAround';
+export * from './findDoubleChestBlocks';
 export * from './initCommand';
 export * from './isBedOccuped';
 export * from './roundDirection';

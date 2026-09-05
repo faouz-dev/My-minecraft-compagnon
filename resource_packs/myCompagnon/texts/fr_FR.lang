@@ -32,12 +32,13 @@ message.mycompagnon:staff_of_authority.dont_have_compagnon=§cVous n'avez pas de
 message.mycompagnon:staff_of_authority.only_use_on_own_compagnon=§cVous n'avez d'autorité  que sur votre compagnon
 
 ###region  Compagnon Message
-message.mycompagnon:compagnon.no_farm_area_selected=Vous n'avez pas selectionné de zone de culture, Veillez utiliser le bâton d'autorité pour delimiter deux point de la zone de cultures
-message.mycompagnon:compagnon.no_farm_chest_selected=Vous n'avez pas sélectionné de coffre pour déposer les cultures et les graines. Si mon inventaire est plein, je ne pourrai plus cultiver
-message.mycompagnon:compagnon.no_farmland_in_area_selected=Aucune terre labourée n'a été trouvée dans la zone sélectionnée. Veuillez sélectionner une nouvelle zone
+message.mycompagnon:compagnon.cant_open_container=Je ne peux pas accéder à ce conteneur.
+message.mycompagnon:compagnon.no_farm_area_selected=Tu ne m'as pas encore indiqué de zone de culture. Utilise le bâton d'autorité pour me donner les deux points qui la délimitent.
+message.mycompagnon:compagnon.no_farm_chest_selected=Tu ne m'as pas encore indiqué de coffre pour déposer mes récoltes et mes graines. Si mon inventaire est plein, je ne pourrai plus cultiver.
+message.mycompagnon:compagnon.no_farmland_in_area_selected=Je n'ai trouvé aucune terre labourée dans la zone sélectionnée. Indique-moi une nouvelle zone.
 
 ####region  Informations Message
-message.mycompagnon:compagnon.behavior_updated=§6Le comportement de votre compagnon a été mis à jour
+info.mycompagnon:compagnon.behavior_updated=§6Le comportement de votre compagnon a été mis à jour
 
 ####region  UIMenu Commands
 uimenu_command.mycompagnon:command_not_found_error_message=Il semble que cette option n'est pas disponible
