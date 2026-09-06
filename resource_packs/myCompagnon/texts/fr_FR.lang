@@ -3,6 +3,7 @@ pack.name=My Compagonon
 pack.description=Un compagnon pour vous epauler dans votre survie.
 
 ####region Global
+global.mycompagnon:compagnon_menu= Menu du compagnon
 global.mycompagnon:error= Erreur
 global.mycompagnon:close= Fermer
 global.mycompagnon:cancel= Annuler
@@ -41,6 +42,7 @@ message.mycompagnon:compagnon.already_have_compagnon=Tu as déjà un compagnon.
 message.mycompagnon:compagnon.no_farm_area_selected=Tu ne m'as pas encore indiqué de zone de culture. Utilise le bâton d'autorité pour me donner les deux points qui la délimitent.
 message.mycompagnon:compagnon.no_farm_chest_selected=Tu ne m'as pas encore indiqué de coffre pour déposer mes récoltes et mes graines. Si mon inventaire est plein, je ne pourrai plus cultiver.
 message.mycompagnon:compagnon.no_farmland_in_area_selected=Je n'ai trouvé aucune terre labourée dans la zone sélectionnée. Indique-moi une nouvelle zone.
+message.mycompagnon:compagnon.noticed_the_chest=D'accord je vais deposer mes loot dans le coffre que vous avez selectionne
 
 ####region  Informations Message
 info.mycompagnon:compagnon.behavior_updated=§6Le comportement de votre compagnon a été mis à jour

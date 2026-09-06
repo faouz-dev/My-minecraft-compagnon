@@ -38,7 +38,7 @@ export class UIMenuCommandsManager {
       return;
     }
 
-    title = parent ?? "behavior.mycompagnon:menu";
+    title = parent ?? "global.mycompagnon:compagnon_menu";
 
     const menuForm = new ActionFormData();
     menuForm.title({ translate: title });

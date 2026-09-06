@@ -50,6 +50,7 @@ import { safestDirectionFromMob } from "../functions/safestDirectionFromMob";
 import { roundDirection } from "../functions/roundDirection";
 import { findDoubleChestBlocks } from "../functions/findDoubleChestBlocks";
 import { findSeedInInventory, PLANT_MAX_GROWTH, PLANTABLE_SEEDS } from "../functions/findSeedInInventory";
+import { showSelectedArea } from "../functions/showSelectedArea";
 
 export type ForcedBehavior = "default" | "follow_player" | "mobs_farming" | "crop_farming";
 
@@ -65,7 +66,14 @@ type FilterOption = {
 
 type ShouldPutItemInContainerProps = {
   container: Block;
+  warningState: ContainerWarningState;
 } & (ClearOption | FilterOption);
+
+type ContainerWarning = "none" | "cant_open" | "cant_access";
+
+type ContainerWarningState = {
+  value: ContainerWarning;
+};
 
 export class CompagnonManager {
   //=================================================
@@ -96,25 +104,30 @@ export class CompagnonManager {
   };
   private eat_behavior_data: { startEating: boolean } = { startEating: false };
   private crop_farming_behavior_data: {
-    area:
-      | {
-          dimension: MinecraftDimensionTypes | undefined;
-          waypoints: { p1: Vector3; p2: Vector3 } | undefined;
-          warnNoAreaProvided: boolean;
-          warnNoFarmLandInAreaSelected: boolean;
-        }
-      | undefined;
+    area: {
+      dimension: MinecraftDimensionTypes | undefined;
+      waypoints: { p1: Vector3; p2: Vector3 } | undefined;
+      warnNoAreaProvided: boolean;
+      warnNoFarmLandInAreaSelected: boolean;
+    };
     chest: {
       chestPosition: Vector3 | undefined;
       chest: Block | undefined;
       avertissementMade: boolean;
+        containerWarning: ContainerWarningState;
     };
   } = {
-    area: undefined,
+    area: {
+      dimension: undefined,
+      waypoints: undefined,
+      warnNoAreaProvided: false,
+      warnNoFarmLandInAreaSelected: false,
+    },
     chest: {
       chestPosition: undefined,
       chest: undefined,
       avertissementMade: false,
+      containerWarning: { value: "none" },
     },
   };
 
@@ -311,64 +324,6 @@ export class CompagnonManager {
     this.armorUpdater();
   }
 
-  private move(
-    target:
-      | {
-          type: "entity" | "location";
-          entity?: Entity;
-          location?: Vector3;
-        }
-      | Entity
-      | Vector3
-  ) {
-    const targetData =
-      target && typeof target === "object" && "type" in target
-        ? target
-        : target && typeof target === "object" && "location" in target
-          ? { type: "entity", entity: target }
-          : { type: "location", location: target };
-
-    const targetEntity = targetData.type === "entity" ? targetData.entity : null;
-    const targetLocation =
-      targetData.type === "location" ? targetData.location : targetEntity ? targetEntity.location : null;
-
-    if (!targetLocation) {
-      debugLog("[move] - Compagnon has no target location");
-      return;
-    }
-
-    const currentPosition = this._compagnon.location;
-    const distanceMoved = Vector3Utils.distance(currentPosition, this.mouvement_datas.lastPosition);
-    const beingStuckSince = this.mouvement_datas.lastPositionTime;
-
-    if (Vector3Utils.distance(currentPosition, targetLocation) < 0.8) {
-      this.mouvement_datas.lastPositionTime = (this.mouvement_datas.lastPositionTime ?? 0) + 1;
-      if (beingStuckSince > 5) {
-        debugLog("[move] - Compagnon is stuck applying impluse");
-        const direction = Vector3Utils.normalize(
-          Vector3Utils.add(targetLocation, Vector3Utils.scale(this._compagnon.location, -1))
-        );
-        this._compagnon.applyImpulse({
-          x: Number.isFinite(direction.x) ? direction.x * 0.5 : 0.5,
-          y: 0.4,
-          z: Number.isFinite(direction.z) ? direction.z * 0.5 : 0.5,
-        });
-        this.mouvement_datas.lastPositionTime = 0;
-        this.mouvement_datas.lastPosition = currentPosition;
-      }
-    } else {
-      this.mouvement_datas.lastPositionTime = 0;
-      this.mouvement_datas.lastPosition = currentPosition;
-    }
-
-    debugLog("[move] - trigger compagnon moving");
-    if (targetEntity) {
-      this._compagnon.navigateToEntity(targetEntity);
-    } else {
-      this._compagnon.navigateToLocation(targetLocation);
-    }
-  }
-
   private updateNameTag() {
     const health = this._compagnon.getComponent(EntityComponentTypes.Health)!.currentValue;
 
@@ -385,13 +340,18 @@ export class CompagnonManager {
     if (this.forced_behavior !== "crop_farming") return false;
     debugLog("[isFarmAreaSelected] - Compagnon is in farm area selection mode");
 
-    if (block && block.type.id === MinecraftBlockTypes.Chest) {
+    if (
+      block &&
+      [MinecraftBlockTypes.Chest, MinecraftBlockTypes.Barrel].includes(block.type.id as MinecraftBlockTypes)
+    ) {
       debugLog("[isFarmAreaSelected] - Compagnon is selecting chest");
       this.crop_farming_behavior_data.chest = {
         chestPosition: block.location,
         chest: block,
         avertissementMade: false,
+        containerWarning: { value: "none" },
       };
+      this.tellOwner("message.mycompagnon:compagnon.noticed_the_chest");
     } else {
       if (this.is_selecting_farm_area_datas.p1) {
         debugLog("[isFarmAreaSelected] - Compagnon is selecting p2");
@@ -403,33 +363,12 @@ export class CompagnonManager {
           warnNoFarmLandInAreaSelected: false,
         };
         const LimitsBlock: Vector3[] = [];
-        for (let i = 0; i < Math.abs(this.is_selecting_farm_area_datas.p1.x - block.location.x); i++) {
-          const x =
-            this.is_selecting_farm_area_datas.p1.x < block.location.x
-              ? this.is_selecting_farm_area_datas.p1.x + i
-              : this.is_selecting_farm_area_datas.p1.x - i;
-          LimitsBlock.push({ x, y: this.is_selecting_farm_area_datas.p1.y, z: this.is_selecting_farm_area_datas.p1.z });
-        }
-        for (let i = 0; i < Math.abs(this.is_selecting_farm_area_datas.p1.z - block.location.z); i++) {
-          const z =
-            this.is_selecting_farm_area_datas.p1.z < block.location.z
-              ? this.is_selecting_farm_area_datas.p1.z + i
-              : this.is_selecting_farm_area_datas.p1.z - i;
-          LimitsBlock.push({ x: this.is_selecting_farm_area_datas.p1.x, y: this.is_selecting_farm_area_datas.p1.y, z });
-        }
-
-        const interval = system.runInterval(() => {
-          LimitsBlock.forEach((block) => {
-            this._owner.dimension.spawnParticle("minecraft:villager_happy", {
-              ...block,
-              y: block.y + 1.5,
-            });
-          });
-        }, 5);
-
-        system.runTimeout(() => {
-          system.clearRun(interval);
-        }, 1 * 20);
+        showSelectedArea(
+          this.crop_farming_behavior_data.area.waypoints!.p1,
+          this.crop_farming_behavior_data.area.waypoints!.p2,
+          40,
+          world.getDimension(this.crop_farming_behavior_data.area.dimension!)
+        );
 
         debugLog("[isFarmAreaSelected] -Farm area selected");
       } else {
@@ -517,6 +456,13 @@ export class CompagnonManager {
     options: Pick<EntityQueryOptions, "maxDistance"> = { maxDistance: 2 },
     move?: boolean
   ): boolean {
+    // Priority 1 - check if bro's inventory is not full
+    const container = this.getInventoryComponent();
+    if (container.container.emptySlotsCount == 0) {
+      debugLog("[GetNearestDropedItemBehavior] - Compagnon inventory is full");
+      return false;
+    }
+
     const nearbyDroppedItems = this._compagnon.dimension
       .getEntities({
         location: this._compagnon.location,
@@ -792,7 +738,7 @@ export class CompagnonManager {
   }
 
   private shouldPutItemIntoContainer(props: ShouldPutItemInContainerProps) {
-    let { container } = props;
+    const { container, warningState } = props;
 
     // verify if is an block with  container
     const inventoryComponent = container.getComponent(BlockComponentTypes.Inventory);
@@ -811,10 +757,14 @@ export class CompagnonManager {
         const blockAtTop = possibleChest.above();
         if (blockAtTop && blockAtTop.typeId !== MinecraftBlockTypes.Air) {
           debugLog("[ShouldPutItemIntoContainer] - Container is not accessible");
-          this.tellOwner("message.mycompagnon:compagnon.cant_open_container");
+          if (warningState.value !== "cant_open") {
+            this.tellOwner("message.mycompagnon:compagnon.cant_open_container");
+            warningState.value = "cant_open";
+          }
           return false;
         }
       }
+      SpawnAt = container.location;
     } else if (container.typeId === MinecraftBlockTypes.Barrel) {
       const nearestBlock = this._compagnon.dimension.getBlocks(
         new BlockVolume(
@@ -842,9 +792,14 @@ export class CompagnonManager {
 
     if (!SpawnAt) {
       debugLog("[ShouldPutItemIntoContainer] - No place to spawn the barrel");
-      this.tellOwner("message.mycompagnon:compagnon.cant_access_container");
+      if (warningState.value !== "cant_access") {
+        this.tellOwner("message.mycompagnon:compagnon.cant_access_container");
+        warningState.value = "cant_access";
+      }
       return false;
     }
+
+    warningState.value = "none";
 
     // Verify if container is Empty
     if (inventoryComponent.container!.emptySlotsCount == 0) {
@@ -895,9 +850,9 @@ export class CompagnonManager {
 
     // Case farming area in zone
     if (!area || !area.dimension || !area.waypoints) {
-      if (!chest.avertissementMade) {
+      if (!area!.warnNoAreaProvided) {
         this.tellOwner("message.mycompagnon:compagnon.no_farm_area_selected");
-        chest.avertissementMade = true;
+        area!.warnNoAreaProvided = true;
       }
       return false;
     }
@@ -921,16 +876,29 @@ export class CompagnonManager {
     if (farmLandLength === 0) {
       if (!area.warnNoFarmLandInAreaSelected) {
         this.tellOwner("message.mycompagnon:compagnon.no_farmland_in_area_selected");
-        area.warnNoFarmLandInAreaSelected = true;
-        this.crop_farming_behavior_data.area = undefined;
+        this.crop_farming_behavior_data.area = {
+          ...area,
+          warnNoFarmLandInAreaSelected: true,
+        };
+      }
+    }
+    const compagnonContainer = this.getInventoryComponent();
+    // Priority 1 : put farmedItemInInventory
+    if (chest.chest && compagnonContainer.container.emptySlotsCount == 0) {
+      const shouldPutItemInChest = this.shouldPutItemIntoContainer({
+        filter: (item) => {
+          return !PLANTABLE_SEEDS.has(item.typeId);
+        },
+        container: chest.chest,
+        warningState: chest.containerWarning,
+      });
+      if (shouldPutItemInChest) {
+        return true;
       }
     }
 
-    // Priority 1 : put farmedItemInInventory
-    // if (chest.chest) if (this.shouldPutItemIntoContainer({ container: chest.chest })) return true;
-
     // Priority 2 : put searchForSeed
-    const compagnonContainer = this.getInventoryComponent();
+
     const seedExist = findSeedInInventory(compagnonContainer);
     if (!seedExist) {
       // TODO search Seed in Chest
@@ -1159,87 +1127,6 @@ export class CompagnonManager {
   // ====================================================================
   //                    Full behavior management
   // ====================================================================
-  // compagnonBehavior() {
-  //   // Initiate default behavior
-  //   this.#behavior = null;
-
-  //   if (this.#target_entity && !this.#target_entity.isValid) {
-  //     this.#target_entity = null;
-  //   }
-  //   if (this.#target_item && !this.#target_item.isValid) {
-  //     this.#target_item = null;
-  //   }
-  //   if (this.#target_location && this.#behavior !== "move_to_location") {
-  //     this.#target_location = null;
-  //   }
-
-  //   // Get distance between owner and compagnon
-  //   const distanceBetweenOwner = Vector3Utils.distance(
-  //     this.#compagnon.location,
-  //     this.#owner.location,
-  //   );
-
-  //   const shouldPrioritizeFarm = this.#hasForcedBehavior([
-  //     "kill_mobs_for_food",
-  //     "farm_in_champs",
-  //   ]);
-
-  //   // Forced Behavior Management
-  //   if (this.#hasForcedBehavior(["default"])) {
-  //     this.#defaultBehavior();
-  //     return;
-  //   }
-
-  //   if (this.#hasForcedBehavior(["kill_mobs_for_food"])) {
-  //     this.#farmingMobsBehavior();
-  //   }
-
-  //   // Prendre un equipement a terre
-  //   if (this.#behavior == "pick_item") {
-  //     debugLog("[CompagnonBehavior] - Compagnon is picking an item");
-  //     if (!this.#target_item || !this.#target_item.isValid) {
-  //       return (this.#behavior = null);
-  //     }
-
-  //     this.#move({ type: "entity", entity: this.#target_item });
-  //     // Attacker une entite
-  //   } else if (this.#behavior == "fight") {
-  //     if (!this.#target_entity || !this.#target_entity.isValid) {
-  //       return (this.#behavior = null);
-  //     }
-
-  //     const distanceBetweenTarget = Vector3Utils.distance(
-  //       this.#compagnon.location,
-  //       this.#target_entity.location,
-  //     );
-
-  //     if (distanceBetweenTarget > 3) {
-  //       this.#move({ type: "entity", entity: this.#target_entity });
-  //     } else {
-  //       this.#compagnon.stopMoving();
-  //       this.#compagnon.attackEntity(this.#target_entity);
-  //     }
-
-  //     // Se diriger a une location
-  //   } else if (this.#behavior == "move_to_location" && this.#target_location) {
-  //     debugLog("[CompagnonBehavior] - Compagnon is moving to a location");
-  //     this.#compagnon.lookAtLocation(this.#target_location);
-  //     this.#move({ type: "location", location: this.#target_location });
-
-  //     // Suivre le joueur
-  //   } else if (this.#forced_behavior == "follow_player") {
-  //     if (distanceBetweenOwner > 15) {
-  //       // following conditions
-  //       this.#compagnon.teleport(this.#owner.location);
-  //     }
-  //     if (distanceBetweenOwner > 3 && distanceBetweenOwner < 15) {
-  //       this.#move({ type: "entity", entity: this.#owner });
-  //     } else {
-  //       this.#compagnon.stopMoving();
-  //       this.#compagnon.lookAtEntity(this.#owner);
-  //     }
-  //   }
-  // }
 
   compagnonBehavior() {
     this.updateNameTag();
