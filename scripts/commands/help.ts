@@ -23,7 +23,7 @@ initCommands({
             `§bAliases §r: ${aliases}\n`,
         );
       } else {
-        return player.sendMessage("§cUnkown command");
+        return player.sendMessage({ translate: "command.mycompagnon:unknown_command" });
       }
     } else {
       return player.sendMessage(

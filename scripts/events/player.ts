@@ -65,7 +65,7 @@ world.afterEvents.playerPlaceBlock.subscribe((event) => {
 
     if (isSpawningCompagnon) {
       if (CompagnonDBManager.hasCompagnon(event.player)) {
-        event.player.sendMessage("You already have a compagnon");
+        event.player.sendMessage({ translate: "message.mycompagnon:compagnon.already_have_compagnon" });
       } else {
         blocks.forEach((b) =>
           event.player.dimension.setBlockType(

@@ -1,6 +1,6 @@
 import { EntityComponentTypes, EntityInventoryComponent, Player } from "@minecraft/server";
 
-const PLANTABLE_SEEDS = new Set([
+export const PLANTABLE_SEEDS = new Set([
   "minecraft:wheat_seeds",
   "minecraft:beetroot_seeds",
   "minecraft:carrot",
@@ -10,6 +10,19 @@ const PLANTABLE_SEEDS = new Set([
   "minecraft:torchflower_seeds",
   "minecraft:pitcher_pod",
   "minecraft:cocoa_beans",
+]);
+
+// Map liant directement le blockId à son état de croissance maximum
+export const PLANT_MAX_GROWTH = new Map([
+  ["minecraft:wheat", 7],
+  ["minecraft:beetroot", 7],
+  ["minecraft:carrots", 7],
+  ["minecraft:potatoes", 7],
+  ["minecraft:pumpkin_stem", 7],
+  ["minecraft:melon_stem", 7],
+  ["minecraft:torchflower_crop", 2],
+  ["minecraft:pitcher_crop", 4],
+  ["minecraft:cocoa", 2],
 ]);
 
 export function findSeedInInventory(container: EntityInventoryComponent) {

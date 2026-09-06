@@ -3,8 +3,8 @@ import { CompagnonManager, ForcedBehavior } from "../class/CompagnonManager";
 import { registerUIMenuCommand } from "../functions/registerUIMenuCommand.";
 
 registerUIMenuCommand({
-  label: "Behavior",
-  description: "Update compagnon behavior",
+  label: "behavior.mycompagnon:menu",
+  description: "behavior.mycompagnon:description",
   options: [
     {
       label: "behavior.mycompagnon:default",

@@ -38,10 +38,10 @@ export class UIMenuCommandsManager {
       return;
     }
 
-    title = parent ?? "Menu";
+    title = parent ?? "behavior.mycompagnon:menu";
 
     const menuForm = new ActionFormData();
-    menuForm.title(title);
+    menuForm.title({ translate: title });
     for (const command of commands) {
       menuForm.button({ translate: command.label });
     }

@@ -25,6 +25,8 @@ import {
   EffectType,
   system,
   BlockInventoryComponent,
+  BlockStateType,
+  BlockStates,
 } from "@minecraft/server";
 import { getPlayerSkin, LookDuration, SimulatedPlayer } from "@minecraft/server-gametest";
 import { Vector2Utils, Vector3Utils } from "@minecraft/math";
@@ -47,9 +49,23 @@ import { isDebug } from "../constants/isDebug";
 import { safestDirectionFromMob } from "../functions/safestDirectionFromMob";
 import { roundDirection } from "../functions/roundDirection";
 import { findDoubleChestBlocks } from "../functions/findDoubleChestBlocks";
-import { findSeedInInventory } from "../functions/findSeedInInventory";
+import { findSeedInInventory, PLANT_MAX_GROWTH, PLANTABLE_SEEDS } from "../functions/findSeedInInventory";
 
 export type ForcedBehavior = "default" | "follow_player" | "mobs_farming" | "crop_farming";
+
+type ClearOption = {
+  clear?: boolean;
+  filter?: never;
+};
+
+type FilterOption = {
+  clear?: never;
+  filter?: (item: ItemStack) => boolean;
+};
+
+type ShouldPutItemInContainerProps = {
+  container: Block;
+} & (ClearOption | FilterOption);
 
 export class CompagnonManager {
   //=================================================
@@ -476,7 +492,7 @@ export class CompagnonManager {
         debugLog("[SleepBehavior] - Compagnon has no bed around");
         // Attendre 10 Seconde avant de l'avertir encore une fois
         if (this.sleep_behavior_data.noBedFoundMessageCooldown == 0) {
-          this._owner.sendMessage("You need to build a bed for your compagnon");
+          this._owner.sendMessage({ translate: "message.mycompagnon:compagnon.no_bed_found" });
           this.sleep_behavior_data.noBedFoundMessageCooldown = 20 * 10;
         } else {
           this.sleep_behavior_data.noBedFoundMessageCooldown = this.sleep_behavior_data.noBedFoundMessageCooldown - 1;
@@ -497,7 +513,10 @@ export class CompagnonManager {
   /**
    * @description Check if Exist an nearest droped item and take it
    */
-  private getNearestDropedItemBehavior(options: Pick<EntityQueryOptions, "maxDistance"> = { maxDistance: 2 }): boolean {
+  private getNearestDropedItemBehavior(
+    options: Pick<EntityQueryOptions, "maxDistance"> = { maxDistance: 2 },
+    move?: boolean
+  ): boolean {
     const nearbyDroppedItems = this._compagnon.dimension
       .getEntities({
         location: this._compagnon.location,
@@ -521,7 +540,11 @@ export class CompagnonManager {
       return false;
     }
     debugLog("[GetNearestDropedItemBehavior] - Compagnon found item");
-    this._compagnon.navigateToEntity(this.target_item);
+    if (move) {
+      this._compagnon.moveToLocation(this.target_item.location);
+    } else {
+      this._compagnon.navigateToEntity(this.target_item);
+    }
     return true;
   }
 
@@ -768,12 +791,7 @@ export class CompagnonManager {
     return true;
   }
 
-  private shouldPutItemIntoContainer(props: {
-    force?: boolean;
-    clear?: boolean;
-    container: Block;
-    filter?: (item: ItemStack) => boolean;
-  }): boolean {
+  private shouldPutItemIntoContainer(props: ShouldPutItemInContainerProps) {
     let { container } = props;
 
     // verify if is an block with  container
@@ -833,13 +851,38 @@ export class CompagnonManager {
       return false;
     }
 
+    debugLog("[ShouldPutItemIntoContainer] - moving to Container");
+
     // try teleport to point
     this._compagnon.tryTeleport(SpawnAt);
 
     this._compagnon.lookAtBlock(container, LookDuration.UntilMove);
     this._compagnon.interactWithBlock(container);
 
-    return true;
+    if (props.clear) {
+      const firstItem = this.getInventoryComponent().container.firstItem();
+      if (firstItem !== undefined) {
+        this.getInventoryComponent().container.transferItem(firstItem, inventoryComponent.container!);
+      }
+    } else {
+      let firstTransferableItemSlot: number | null = null;
+      for (let i = 4; i < this.getInventoryComponent().container.size; i++) {
+        const existsItem = this.getInventoryComponent().container.getItem(i);
+        if (existsItem !== undefined) {
+          if (props.filter && props.filter(existsItem)) {
+            firstTransferableItemSlot = i;
+            break;
+          } else if (!props.filter) {
+            firstTransferableItemSlot = i;
+            break;
+          }
+        }
+      }
+
+      if (firstTransferableItemSlot !== null) {
+        this.getInventoryComponent().container.transferItem(firstTransferableItemSlot, inventoryComponent.container!);
+      }
+    }
 
     return true;
   }
@@ -889,7 +932,7 @@ export class CompagnonManager {
     if (!seedExist) {
       // TODO search Seed in Chest
       debugLog("[ShouldFarmCrop] - No seed found in inventory");
-      return false;
+      return true;
     } else {
       this.getInventoryComponent().container.swapItems(seedExist.slot, 5, compagnonContainer.container);
       debugLog("[ShouldFarmCrop] - " + seedExist.item.amount + " Seed found in inventory : " + seedExist.item.typeId);
@@ -897,22 +940,27 @@ export class CompagnonManager {
 
     // priority 3 : put crop in Empty Farmland
     const emptyFarmLand: Block[] = [];
+    const plants: Block[] = [];
     for (const blockPosition of farmableLandsInArea.getBlockLocationIterator()) {
       const block = world.getDimension(area.dimension).getBlock(blockPosition);
       if (block && block.above()?.typeId == MinecraftBlockTypes.Air) {
         emptyFarmLand.push(block);
+      } else if (block && block.above() && block.above()!.typeId != MinecraftBlockTypes.Air) {
+        plants.push(block.above()!);
       }
     }
 
     if (emptyFarmLand.length > 0) {
       debugLog("[ShouldFarmCrop] - Empty Farmland found : " + emptyFarmLand.length);
+      emptyFarmLand.sort((a, b) => this.nearestFromCompagnon(a.location, b.location));
       const block = emptyFarmLand[0];
       if (Vector3Utils.distance(this._compagnon.location, block.location) <= 3) {
         this._compagnon.stopMoving();
         this.compagnon.lookAtBlock(block, LookDuration.Instant);
         const seed = compagnonContainer.container.getItem(5);
-        if (seed) {
-          const success = this._compagnon.useItemOnBlock(seed!, block.location);
+        if (seed && PLANTABLE_SEEDS.has(seed.typeId)) {
+          const clone = seed.clone();
+          const success = this._compagnon.useItemOnBlock(clone, block.location);
           if (success) {
             if (seed!.amount > 1) {
               compagnonContainer.container.setItem(5, new ItemStack(seed.type, seed.amount - 1));
@@ -927,7 +975,40 @@ export class CompagnonManager {
       }
     }
 
-    // Priority 4 : recolte if there are
+    // Priority 4 : recolte if there are some seedGrowwed
+    if (plants.length > 0) {
+      debugLog("[ShouldFarmCrop] - Not Empty Farmland found : " + plants.length);
+      const maxGrowedPlant = plants
+        .filter((plant) => {
+          const growth = plant.permutation.getState("growth");
+          if (
+            growth !== undefined &&
+            PLANT_MAX_GROWTH.get(plant.typeId) &&
+            growth >= PLANT_MAX_GROWTH.get(plant.typeId)!
+          ) {
+            return true;
+          } else {
+            return false;
+          }
+        })
+        .sort((a, b) => this.nearestFromCompagnon(a.location, b.location));
+
+      if (maxGrowedPlant.length > 0) {
+        const block = maxGrowedPlant[0];
+        if (Vector3Utils.distance(this._compagnon.location, block.location) <= 3) {
+          this._compagnon.stopMoving();
+          this.compagnon.lookAtBlock(block, LookDuration.Instant);
+          this.compagnon.selectedSlotIndex = 3;
+          const success = this._compagnon.breakBlock(block.location);
+          if (success) {
+            debugLog("[ShouldFarmCrop] - Crop Recolted");
+          }
+        } else {
+          this.compagnon.moveToBlock(block.location, { speed: 1 });
+          this.compagnon.lookAtBlock(block, LookDuration.Instant);
+        }
+      }
+    }
 
     return true;
   }
@@ -1051,7 +1132,7 @@ export class CompagnonManager {
     if (this.shouldEatBehavior({ shouldEatAt: 6, ShouldEatUntil: 20 })) return;
 
     // Priority 5 : Get dropped item in range 5 form farming better
-    if (this.getNearestDropedItemBehavior({ maxDistance: 5 })) return;
+    if (this.getNearestDropedItemBehavior({ maxDistance: 5 }, true)) return;
 
     // Priority 6 : attack nearest mob
     if (this.shouldAttackNearestMonsterMobs({ maxDistance: 5 })) return;

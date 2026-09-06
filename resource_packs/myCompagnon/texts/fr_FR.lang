@@ -25,6 +25,8 @@ behavior.mycompagnon:follow_player= Me suivre uniquement
 behavior.mycompagnon:default=libre de choix
 behavior.mycompagnon:mobs_farming= Chasser les mobs
 behavior.mycompagnon:crop_farming= Cultiver les cultures
+behavior.mycompagnon:menu= Comportement
+behavior.mycompagnon:description= Modifier le comportement du compagnon
 
 
 ####region  CPM_Guider messages
@@ -33,12 +35,18 @@ message.mycompagnon:staff_of_authority.only_use_on_own_compagnon=§cVous n'avez 
 
 ###region  Compagnon Message
 message.mycompagnon:compagnon.cant_open_container=Je ne peux pas accéder à ce conteneur.
+message.mycompagnon:compagnon.cant_access_container=Je ne peux pas accéder à ce conteneur.
+message.mycompagnon:compagnon.no_bed_found=Tu dois construire un lit pour ton compagnon.
+message.mycompagnon:compagnon.already_have_compagnon=Tu as déjà un compagnon.
 message.mycompagnon:compagnon.no_farm_area_selected=Tu ne m'as pas encore indiqué de zone de culture. Utilise le bâton d'autorité pour me donner les deux points qui la délimitent.
 message.mycompagnon:compagnon.no_farm_chest_selected=Tu ne m'as pas encore indiqué de coffre pour déposer mes récoltes et mes graines. Si mon inventaire est plein, je ne pourrai plus cultiver.
 message.mycompagnon:compagnon.no_farmland_in_area_selected=Je n'ai trouvé aucune terre labourée dans la zone sélectionnée. Indique-moi une nouvelle zone.
 
 ####region  Informations Message
 info.mycompagnon:compagnon.behavior_updated=§6Le comportement de votre compagnon a été mis à jour
+
+####region Command Messages
+command.mycompagnon:unknown_command=§cCommande inconnue
 
 ####region  UIMenu Commands
 uimenu_command.mycompagnon:command_not_found_error_message=Il semble que cette option n'est pas disponible

@@ -24,7 +24,7 @@ world.beforeEvents.chatSend.subscribe((event) => {
 
       existCommand.function(args, sender);
     } else {
-      sender.sendMessage("unknown command");
+      sender.sendMessage({ translate: "command.mycompagnon:unknown_command" });
     }
   }
 });
