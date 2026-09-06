@@ -808,8 +808,9 @@ export class CompagnonManager {
       const possibleChestBlocks = findDoubleChestBlocks(container);
 
       for (const possibleChest of possibleChestBlocks) {
-        const blockAtTop = this._compagnon.dimension.getBlock(Vector3Utils.add(possibleChest.location, { y: 1 }));
+        const blockAtTop = possibleChest.above();
         if (blockAtTop && blockAtTop.typeId !== MinecraftBlockTypes.Air) {
+          debugLog("[ShouldPutItemIntoContainer] - Container is not accessible");
           this.tellOwner("message.mycompagnon:compagnon.cant_open_container");
           return false;
         }
@@ -862,6 +863,7 @@ export class CompagnonManager {
     if (props.clear) {
       const firstItem = this.getInventoryComponent().container.firstItem();
       if (firstItem !== undefined) {
+        debugLog("[ShouldPutItemIntoContainer] - putting item  " + firstItem + " in container");
         this.getInventoryComponent().container.transferItem(firstItem, inventoryComponent.container!);
       }
     } else {
@@ -880,6 +882,7 @@ export class CompagnonManager {
       }
 
       if (firstTransferableItemSlot !== null) {
+        debugLog("[ShouldPutItemIntoContainer] - putting item  " + firstTransferableItemSlot + " in container");
         this.getInventoryComponent().container.transferItem(firstTransferableItemSlot, inventoryComponent.container!);
       }
     }
