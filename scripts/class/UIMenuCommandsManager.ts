@@ -4,6 +4,7 @@ import {
   DataDrivenScreenClosedReason,
   DropdownItemData,
   MessageFormData,
+  ModalFormData,
   ObservableNumber,
 } from "@minecraft/server-ui";
 import { IMenuCommand, UIMenuCommands } from "../constants/UIMenuCommands";
@@ -67,36 +68,54 @@ export class UIMenuCommandsManager {
     const title = command.label;
     const description = command.description;
 
-    const customForm = new CustomForm(player, { translate: title });
-    customForm.label({ translate: description });
-    customForm.spacer();
+    if (command.type !== "select" || !command.options) return;
 
-    if (command.type == "select") {
-      const value = new ObservableNumber(0, { clientWritable: true });
-      const dropDownItem: DropdownItemData[] = command.options!.map((option, i) => ({
-        label: { translate: option.label },
-        value: i,
-      }));
+    const form = new ModalFormData()
+      .title({ translate: title })
+      .label({ translate: description })
+      .divider()
+      .dropdown(
+        { translate: "global.mycompagnon:select" },
+        command.options.map((option) => ({
+          translate: option.label,
+        }))
+      )
+      .submitButton({ translate: "global.mycompagnon:ok" });
 
-      customForm.dropdown({ translate: "global.mycompagnon:select" }, value, dropDownItem);
-      customForm.button({ translate: "global.mycompagnon:ok" }, () => {
-        customForm.close();
-        debugLog(`[UIMenuCommandsManager] ${player.name} selected ${value.getData()}`);
-        command.callback(player, compagnon, command.options![value.getData()]!.value);
-      });
-      customForm.divider();
-      if (onReturn)
-        customForm.button({ translate: "global.mycompagnon:back" }, () => {
-          customForm.close();
-          onReturn();
-        });
-      customForm.closeButton();
-      customForm.show().then((err) => {
-        if (err) {
-          debugLog(`[UIMenuCommandsManager] ${player.name} error: ${err}`);
+    form
+      .show(player)
+      .then((response) => {
+        if (response.canceled) {
+          debugLog(`[UIMenuCommandsManager] ${player.name} canceled option menu`);
+
+          if (onReturn) onReturn();
           return;
         }
+
+        /*
+         * On cherche la valeur numérique plutôt que d'utiliser
+         * directement formValues[0].
+         *
+         * ModalFormData peut maintenant contenir label/header/divider,
+         * dont les valeurs de réponse peuvent être undefined.
+         */
+        const selectedIndex = response.formValues?.find((value): value is number => typeof value === "number");
+
+        if (selectedIndex === undefined) {
+          debugLog(`[UIMenuCommandsManager] ${player.name} no option selected`);
+          return;
+        }
+
+        const selectedOption = command.options![selectedIndex];
+
+        if (!selectedOption) return;
+
+        debugLog(`[UIMenuCommandsManager] ${player.name} selected ${selectedIndex}`);
+
+        command.callback(player, compagnon, selectedOption.value);
+      })
+      .catch((error) => {
+        debugLog(`[UIMenuCommandsManager] ${player.name} error: ${error}`);
       });
-    }
   }
 }

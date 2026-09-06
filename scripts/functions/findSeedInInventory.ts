@@ -1,4 +1,4 @@
-import { EntityComponentTypes, EntityInventoryComponent, Player } from "@minecraft/server";
+import { BlockInventoryComponent, EntityComponentTypes, EntityInventoryComponent, Player } from "@minecraft/server";
 
 export const PLANTABLE_SEEDS = new Set([
   "minecraft:wheat_seeds",
@@ -40,4 +40,19 @@ export function findSeedInInventory(container: EntityInventoryComponent) {
   }
 
   return undefined;
+}
+
+export function findSeedInChest(container: BlockInventoryComponent) {
+  const inventory = container;
+
+  for (let slot = 0; slot < inventory.container!.size; slot++) {
+    const item = inventory.container!.getItem(slot);
+
+    if (item && PLANTABLE_SEEDS.has(item.typeId)) {
+      return {
+        item,
+        slot,
+      };
+    }
+  }
 }

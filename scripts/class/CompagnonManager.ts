@@ -49,7 +49,12 @@ import { isDebug } from "../constants/isDebug";
 import { safestDirectionFromMob } from "../functions/safestDirectionFromMob";
 import { roundDirection } from "../functions/roundDirection";
 import { findDoubleChestBlocks } from "../functions/findDoubleChestBlocks";
-import { findSeedInInventory, PLANT_MAX_GROWTH, PLANTABLE_SEEDS } from "../functions/findSeedInInventory";
+import {
+  findSeedInChest,
+  findSeedInInventory,
+  PLANT_MAX_GROWTH,
+  PLANTABLE_SEEDS,
+} from "../functions/findSeedInInventory";
 import { showSelectedArea } from "../functions/showSelectedArea";
 
 export type ForcedBehavior = "default" | "follow_player" | "mobs_farming" | "crop_farming";
@@ -114,7 +119,7 @@ export class CompagnonManager {
       chestPosition: Vector3 | undefined;
       chest: Block | undefined;
       avertissementMade: boolean;
-        containerWarning: ContainerWarningState;
+      containerWarning: ContainerWarningState;
     };
   } = {
     area: {
@@ -892,16 +897,13 @@ export class CompagnonManager {
         container: chest.chest,
         warningState: chest.containerWarning,
       });
-      if (shouldPutItemInChest) {
-        return true;
-      }
+      return true;
     }
 
     // Priority 2 : put searchForSeed
 
     const seedExist = findSeedInInventory(compagnonContainer);
     if (!seedExist) {
-      // TODO search Seed in Chest
       debugLog("[ShouldFarmCrop] - No seed found in inventory");
     } else {
       debugLog("[ShouldFarmCrop] - " + seedExist.slot + " Seed found in inventory : " + seedExist.item.typeId);
