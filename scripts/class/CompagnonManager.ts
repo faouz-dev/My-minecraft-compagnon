@@ -935,10 +935,8 @@ export class CompagnonManager {
     if (!seedExist) {
       // TODO search Seed in Chest
       debugLog("[ShouldFarmCrop] - No seed found in inventory");
-      return true;
     } else {
-      this.getInventoryComponent().container.swapItems(seedExist.slot, 5, compagnonContainer.container);
-      debugLog("[ShouldFarmCrop] - " + seedExist.item.amount + " Seed found in inventory : " + seedExist.item.typeId);
+      debugLog("[ShouldFarmCrop] - " + seedExist.slot + " Seed found in inventory : " + seedExist.item.typeId);
     }
 
     // priority 3 : put crop in Empty Farmland
@@ -953,29 +951,41 @@ export class CompagnonManager {
       }
     }
 
-    if (emptyFarmLand.length > 0) {
+    // Priority 3 : put crop in Empty Farmland
+    if (emptyFarmLand.length > 0 && seedExist) {
       debugLog("[ShouldFarmCrop] - Empty Farmland found : " + emptyFarmLand.length);
+
       emptyFarmLand.sort((a, b) => this.nearestFromCompagnon(a.location, b.location));
       const block = emptyFarmLand[0];
-      if (Vector3Utils.distance(this._compagnon.location, block.location) <= 3) {
+      const distance = Vector3Utils.distance(this._compagnon.location, block.location);
+
+      if (distance <= 3) {
         this._compagnon.stopMoving();
         this.compagnon.lookAtBlock(block, LookDuration.Instant);
-        const seed = compagnonContainer.container.getItem(5);
-        if (seed && PLANTABLE_SEEDS.has(seed.typeId)) {
-          const clone = seed.clone();
-          const success = this._compagnon.useItemOnBlock(clone, block.location);
-          if (success) {
-            if (seed!.amount > 1) {
-              compagnonContainer.container.setItem(5, new ItemStack(seed.type, seed.amount - 1));
-            } else {
-              compagnonContainer.container.setItem(5, undefined);
-            }
+
+        // On utilise directement l'item et le slot renvoyés par seedExist
+        const { item: seed, slot } = seedExist;
+
+        // Utilisation directe avec la face supérieure
+        const success = this._compagnon.useItemOnBlock(seed, block.location);
+
+        if (success) {
+          debugLog("[ShouldFarmCrop] - Seed planted successfully at slot " + slot);
+
+          // Mise à jour de la quantité directement dans son slot d'origine
+          if (seed.amount > 1) {
+            compagnonContainer.container.setItem(slot, new ItemStack(seed.type, seed.amount - 1));
+          } else {
+            compagnonContainer.container.setItem(slot, undefined);
           }
-        } else {
-          this.compagnon.moveToBlock(block.location, { speed: 1 });
-          this.compagnon.lookAtBlock(block, LookDuration.Instant);
         }
+      } else {
+        debugLog("[ShouldFarmCrop] - Moving to farmland...");
+        this.compagnon.moveToBlock(block.location, { speed: 1 });
+        this.compagnon.lookAtBlock(block, LookDuration.Instant);
       }
+
+      return true;
     }
 
     // Priority 4 : recolte if there are some seedGrowwed
@@ -1011,6 +1021,8 @@ export class CompagnonManager {
           this.compagnon.lookAtBlock(block, LookDuration.Instant);
         }
       }
+
+      return true;
     }
 
     return true;
