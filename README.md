@@ -1,21 +1,25 @@
-# My Compagnon 🎮
+# My Compagnon 1.1.0 🎮
 
-A Minecraft Bedrock Edition addon that adds companion entities to follow and assist you in your survival world!
+A Minecraft Bedrock Edition addon that adds companion entities to follow, defend and assist you in your survival world.
 
 ## Features ✨
 
-- **Companion Entities**: Spawn and manage companion NPCs that follow you around
-- **Smart Behavior**: Companions have intelligent pathfinding and behavior systems
+- **Companion Entities**: Spawn and manage companion NPCs that follow and defend you
+- **Guard Behavior**: Companions can follow their owner, protect them from hostile mobs and attack selected targets
+- **Needs Management**: Companions can sleep, eat and heal when necessary
+- **Crop Farming**: Select a farming area, plant seeds, harvest mature crops and deposit items in a chest
+- **Inventory Management**: Companions collect dropped items and automatically manage tools, armor and food
 - **Command System**: Easy-to-use commands for spawning and managing companions
 - **Event Handling**: Integrated event system for player and entity interactions
 - **Data Management**: Persistent companion database to track your companions
 - **Food Mob Support**: Special handling for food-related mobs and items
+- **Custom Naming**: Rename your companion from the in-game menu
 - **Debug Support**: Built-in debug logging for development and troubleshooting
 
 ## Installation 📥
 
-1. Download the latest `my-compagnon.mcpack` file
-2. Double-click the `.mcpack` file to import it into Minecraft Bedrock Edition
+1. Download the latest `my-compagnon.mcaddon` file
+2. Double-click the `.mcaddon` file to import it into Minecraft Bedrock Edition
 3. Enable the addon in your world settings
 4. Ensure your Minecraft version is at least **1.26.30**
 
@@ -35,9 +39,12 @@ Run these commands in-game to use the addon:
 - `/compagnon spawn <type>` - Spawn a new companion
 - `/compagnon behavior` - Configure companion behavior
 
+The available behaviors include guard mode and crop farming. Use the in-game menu to select a behavior, rename your companion, select a farming area and choose a chest for storage.
+
 *Check the help command for a complete list of available options*
 
 - **Manifest Format**: 2
+- **Pack Version**: 1.1.0
 - **Minimum Engine Version**: 1.26.30
 - **Script Language**: JavaScript
 
