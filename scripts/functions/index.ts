@@ -7,5 +7,6 @@ export * from './getRandomPointAround';
 export * from './findDoubleChestBlocks';
 export * from './initCommand';
 export * from './isBedOccuped';
+export * from './lootAndBreakBlock';
 export * from './roundDirection';
 export * from './safestDirectionFromMob';

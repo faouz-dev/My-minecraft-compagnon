@@ -20,6 +20,7 @@ world.afterEvents.playerLeave.subscribe(({ playerId }) => {
   // Despawn Player's Bot
   const compagnon = COMPAGNONS.get(playerId);
   if (compagnon) {
+    compagnon.savePersistentData();
     COMPAGNONS.delete(playerId);
     compagnon.compagnon.remove();
   }

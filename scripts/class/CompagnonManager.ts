@@ -31,7 +31,7 @@ import {
 import { getPlayerSkin, LookDuration, SimulatedPlayer } from "@minecraft/server-gametest";
 import { Vector2Utils, Vector3Utils } from "@minecraft/math";
 import { debugLog } from "../functions/debugLog";
-import { CompagnonDBManager } from "./CompagnonDBManager";
+import { CompagnonDBManager, type CompagnonProperty, type SerializedItem } from "./CompagnonDBManager";
 import { checkforBestItem, type ItemPurpose } from "../functions/checkforBestItem";
 import { FOOD_MOBS } from "../constants/foodMobs";
 import { getRandomPointAround } from "../functions/getRandomPointAround";
@@ -56,6 +56,7 @@ import {
   PLANTABLE_SEEDS,
 } from "../functions/findSeedInInventory";
 import { showSelectedArea } from "../functions/showSelectedArea";
+import { lootAndBreakBlock } from "../functions/lootAndBreakBlock";
 
 export type ForcedBehavior = "default" | "follow_player" | "mobs_farming" | "crop_farming";
 
@@ -118,6 +119,7 @@ export class CompagnonManager {
     };
     chest: {
       chestPosition: Vector3 | undefined;
+      dimension: MinecraftDimensionTypes | undefined;
       chest: Block | undefined;
       avertissementMade: boolean;
       containerWarning: ContainerWarningState;
@@ -132,6 +134,7 @@ export class CompagnonManager {
     },
     chest: {
       chestPosition: undefined,
+      dimension: undefined,
       chest: undefined,
       avertissementMade: false,
       containerWarning: { value: "none" },
@@ -143,6 +146,8 @@ export class CompagnonManager {
     p1: Vector3 | null;
     p1SelectedAt: number | null;
   } = { p1: null, p1SelectedAt: null };
+
+  private lastPersistenceTick = 0;
 
   //=================================================
   // #endregion Variable Declaration
@@ -194,6 +199,8 @@ export class CompagnonManager {
   // =====================================================
 
   private config() {
+    const savedData = CompagnonDBManager.getCompagnon(this._owner);
+
     // Set Skin
     const playerSkin = getPlayerSkin(this._owner);
     this._compagnon.setSkin(playerSkin);
@@ -201,9 +208,115 @@ export class CompagnonManager {
 
     // Initialise Values
     this.mouvement_datas = {
-      lastPosition: this._compagnon.location,
+      lastPosition: savedData?.location ?? this._compagnon.location,
       lastPositionTime: 0,
     };
+
+    if (savedData) this.restorePersistentData(savedData);
+  }
+
+  private restorePersistentData(data: CompagnonProperty) {
+    this._forced_behavior = data.forced_behavior ?? "default";
+
+    if (data.location && data.dimension) {
+      try {
+        this._compagnon.teleport(data.location, { dimension: world.getDimension(data.dimension) });
+      } catch (error) {
+        debugLog(`[Config] - Could not restore compagnon location: ${error}`);
+      }
+    }
+
+    const health = this._compagnon.getComponent(EntityComponentTypes.Health);
+    if (health && typeof data.health === "number") health.setCurrentValue(data.health);
+
+    const hunger = this._compagnon.getComponent(EntityComponentTypes.Hunger);
+    if (hunger && typeof data.hunger === "number") hunger.setCurrentValue(data.hunger);
+
+    const inventory = this.getInventoryComponent().container;
+    for (let slot = 0; slot < inventory.size; slot++) {
+      const serializedItem = data.inventory?.[slot];
+      inventory.setItem(slot, serializedItem ? this.deserializeItem(serializedItem) : undefined);
+    }
+
+    const equipable = this.getEquipableComponent();
+    for (const slot of [EquipmentSlot.Head, EquipmentSlot.Chest, EquipmentSlot.Legs, EquipmentSlot.Feet, EquipmentSlot.Offhand]) {
+      const serializedItem = data.equipment?.[slot];
+      equipable.setEquipment(slot, serializedItem ? this.deserializeItem(serializedItem) : undefined);
+    }
+
+    const savedCropData = data.cropFarmingData;
+    if (savedCropData?.area) {
+      this.crop_farming_behavior_data.area = {
+        dimension: savedCropData.area.dimension as MinecraftDimensionTypes,
+        waypoints: { p1: savedCropData.area.p1, p2: savedCropData.area.p2 },
+        warnNoAreaProvided: false,
+        warnNoFarmLandInAreaSelected: false,
+      };
+    }
+
+    if (savedCropData?.chest) {
+      const dimension = world.getDimension(savedCropData.chest.dimension);
+      const chest = dimension.getBlock(savedCropData.chest.position);
+      this.crop_farming_behavior_data.chest = {
+        chestPosition: savedCropData.chest.position,
+        dimension: savedCropData.chest.dimension as MinecraftDimensionTypes,
+        chest: chest?.typeId === MinecraftBlockTypes.Chest ? chest : undefined,
+        avertissementMade: false,
+        containerWarning: { value: "none" },
+        isEmptyingInventory: false,
+      };
+    }
+  }
+
+  private serializeItem(item: ItemStack | undefined): SerializedItem | undefined {
+    if (!item) return undefined;
+    return { typeId: item.typeId, amount: item.amount };
+  }
+
+  private deserializeItem(item: SerializedItem): ItemStack {
+    return new ItemStack(item.typeId, item.amount);
+  }
+
+  public savePersistentData() {
+    const inventory = this.getInventoryComponent().container;
+    const equipment: Partial<Record<string, SerializedItem>> = {};
+    const equipable = this.getEquipableComponent();
+
+    for (const slot of [EquipmentSlot.Head, EquipmentSlot.Chest, EquipmentSlot.Legs, EquipmentSlot.Feet, EquipmentSlot.Offhand]) {
+      const item = this.serializeItem(equipable.getEquipment(slot));
+      if (item) equipment[slot] = item;
+    }
+
+    const area = this.crop_farming_behavior_data.area;
+    const chest = this.crop_farming_behavior_data.chest;
+    const cropFarmingData: CompagnonProperty["cropFarmingData"] = {};
+
+    if (area.dimension && area.waypoints) {
+      cropFarmingData.area = {
+        dimension: area.dimension,
+        p1: area.waypoints.p1,
+        p2: area.waypoints.p2,
+      };
+    }
+
+    if (chest.chestPosition && chest.dimension) {
+      cropFarmingData.chest = {
+        dimension: chest.dimension,
+        position: chest.chestPosition,
+      };
+    }
+
+    CompagnonDBManager.updateCompagnonData(this._owner, {
+      name: this.compagnonName,
+      health: this._compagnon.getComponent(EntityComponentTypes.Health)?.currentValue,
+      hunger: this._compagnon.getComponent(EntityComponentTypes.Hunger)?.currentValue,
+      forced_behavior: this._forced_behavior,
+      location: this._compagnon.location,
+      dimension: this._compagnon.dimension.id,
+      cropFarmingData,
+      inventory: Array.from({ length: inventory.size }, (_, slot) => this.serializeItem(inventory.getItem(slot))),
+      equipment,
+    });
   }
 
   /**
@@ -365,11 +478,13 @@ export class CompagnonManager {
       debugLog("[isFarmAreaSelected] - Compagnon is selecting chest");
       this.crop_farming_behavior_data.chest = {
         chestPosition: block.location,
+        dimension: block.dimension.id as MinecraftDimensionTypes,
         chest: block,
         avertissementMade: false,
         containerWarning: { value: "none" },
         isEmptyingInventory: false,
       };
+      this.savePersistentData();
       this.tellOwner("message.mycompagnon:compagnon.noticed_the_chest");
     } else {
       if (
@@ -379,6 +494,7 @@ export class CompagnonManager {
       ) {
         debugLog("[isFarmAreaSelected] - First point selection expired");
         this.is_selecting_farm_area_datas = { p1: null, p1SelectedAt: null };
+        this.savePersistentData();
       }
 
       if (this.is_selecting_farm_area_datas.p1) {
@@ -408,6 +524,7 @@ export class CompagnonManager {
           y: block.location.y + 1.25,
           z: block.location.z + 0.5,
         });
+        this.savePersistentData();
         debugLog("[isFarmAreaSelected] - Compagnon is selected p1 : " + JSON.stringify(block.location, undefined, 1));
       }
     }
@@ -993,7 +1110,7 @@ export class CompagnonManager {
           this._compagnon.stopMoving();
           this.compagnon.lookAtBlock(block, LookDuration.Instant);
           this.compagnon.selectedSlotIndex = 3;
-          const success = this._compagnon.breakBlock(block.location);
+          const success = lootAndBreakBlock(block);
           if (success) {
             debugLog("[ShouldFarmCrop] - Crop Recolted");
           }
@@ -1143,6 +1260,10 @@ export class CompagnonManager {
 
   compagnonBehavior() {
     this.updateNameTag();
+    if (system.currentTick - this.lastPersistenceTick >= 20) {
+      this.savePersistentData();
+      this.lastPersistenceTick = system.currentTick;
+    }
     // Recurent Check
     this.recurentsCheck();
 

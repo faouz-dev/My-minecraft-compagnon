@@ -1,17 +1,37 @@
 import { EntityComponentTypes, Player, world } from "@minecraft/server";
 import { SimulatedPlayer } from "@minecraft/server-gametest";
 
-interface CompagnonProperty {
+export type SerializedVector3 = { x: number; y: number; z: number };
+
+export type SerializedItem = {
+  typeId: string;
+  amount: number;
+};
+
+export type CompagnonProperty = {
   health: number;
+  hunger: number;
   name: string;
   forced_behavior: import("./CompagnonManager").ForcedBehavior;
-}
+  location: SerializedVector3;
+  dimension: string;
+  cropFarmingData: {
+    area?: {
+      dimension: string;
+      p1: SerializedVector3;
+      p2: SerializedVector3;
+    };
+    chest?: {
+      dimension: string;
+      position: SerializedVector3;
+    };
+  };
+  inventory: Array<SerializedItem | undefined>;
+  equipment: Partial<Record<string, SerializedItem>>;
+};
 
 export class CompagnonDBManager {
-  static updateCompagnonData(
-    player: Player,
-    property: Partial<CompagnonProperty>,
-  ) {
+  static updateCompagnonData(player: Player, property: Partial<CompagnonProperty>) {
     const currentProperty = CompagnonDBManager.getCompagnon(player) ?? {};
 
     Object.assign(currentProperty, property);
@@ -40,7 +60,13 @@ export class CompagnonDBManager {
     CompagnonDBManager.updateCompagnonData(player, {
       name: compagnon.name,
       health: compagnon.getComponent(EntityComponentTypes.Health)?.currentValue,
+      hunger: compagnon.getComponent(EntityComponentTypes.Hunger)?.currentValue,
       forced_behavior: "default",
+      location: compagnon.location,
+      dimension: compagnon.dimension.id,
+      cropFarmingData: {},
+      inventory: [],
+      equipment: {},
     });
   }
 
