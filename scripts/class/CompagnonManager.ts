@@ -120,6 +120,7 @@ export class CompagnonManager {
       chest: Block | undefined;
       avertissementMade: boolean;
       containerWarning: ContainerWarningState;
+      isEmptyingInventory: boolean;
     };
   } = {
     area: {
@@ -133,10 +134,14 @@ export class CompagnonManager {
       chest: undefined,
       avertissementMade: false,
       containerWarning: { value: "none" },
+      isEmptyingInventory: false,
     },
   };
 
-  private is_selecting_farm_area_datas: { p1: Vector3 | null; p2: Vector3 | null } = { p1: null, p2: null };
+  private is_selecting_farm_area_datas: {
+    p1: Vector3 | null;
+    p1SelectedAt: number | null;
+  } = { p1: null, p1SelectedAt: null };
 
   //=================================================
   // #endregion Variable Declaration
@@ -345,19 +350,26 @@ export class CompagnonManager {
     if (this.forced_behavior !== "crop_farming") return false;
     debugLog("[isFarmAreaSelected] - Compagnon is in farm area selection mode");
 
-    if (
-      block &&
-      [MinecraftBlockTypes.Chest, MinecraftBlockTypes.Barrel].includes(block.type.id as MinecraftBlockTypes)
-    ) {
+    if (block.type.id === MinecraftBlockTypes.Chest) {
       debugLog("[isFarmAreaSelected] - Compagnon is selecting chest");
       this.crop_farming_behavior_data.chest = {
         chestPosition: block.location,
         chest: block,
         avertissementMade: false,
         containerWarning: { value: "none" },
+        isEmptyingInventory: false,
       };
       this.tellOwner("message.mycompagnon:compagnon.noticed_the_chest");
     } else {
+      if (
+        this.is_selecting_farm_area_datas.p1 &&
+        this.is_selecting_farm_area_datas.p1SelectedAt !== null &&
+        system.currentTick - this.is_selecting_farm_area_datas.p1SelectedAt > 60 * 20
+      ) {
+        debugLog("[isFarmAreaSelected] - First point selection expired");
+        this.is_selecting_farm_area_datas = { p1: null, p1SelectedAt: null };
+      }
+
       if (this.is_selecting_farm_area_datas.p1) {
         debugLog("[isFarmAreaSelected] - Compagnon is selecting p2");
         // Reset farming behavior datas
@@ -367,7 +379,6 @@ export class CompagnonManager {
           warnNoAreaProvided: false,
           warnNoFarmLandInAreaSelected: false,
         };
-        const LimitsBlock: Vector3[] = [];
         showSelectedArea(
           this.crop_farming_behavior_data.area.waypoints!.p1,
           this.crop_farming_behavior_data.area.waypoints!.p2,
@@ -375,9 +386,17 @@ export class CompagnonManager {
           world.getDimension(this.crop_farming_behavior_data.area.dimension!)
         );
 
+        this.is_selecting_farm_area_datas = { p1: null, p1SelectedAt: null };
+
         debugLog("[isFarmAreaSelected] -Farm area selected");
       } else {
         this.is_selecting_farm_area_datas.p1 = block.location;
+        this.is_selecting_farm_area_datas.p1SelectedAt = system.currentTick;
+        this._owner.dimension.spawnParticle("minecraft:endrod", {
+          x: block.location.x + 0.5,
+          y: block.location.y + 1.25,
+          z: block.location.z + 0.5,
+        });
         debugLog("[isFarmAreaSelected] - Compagnon is selected p1 : " + JSON.stringify(block.location, undefined, 1));
       }
     }
@@ -770,33 +789,10 @@ export class CompagnonManager {
         }
       }
       SpawnAt = container.location;
-    } else if (container.typeId === MinecraftBlockTypes.Barrel) {
-      const nearestBlock = this._compagnon.dimension.getBlocks(
-        new BlockVolume(
-          Vector3Utils.add(container.location, { z: -1, x: -1 }),
-          Vector3Utils.add(container.location, { z: 1, x: 1 })
-        ),
-        {}
-      );
-
-      for (const blockPosition of nearestBlock.getBlockLocationIterator()) {
-        const y_add = blockPosition === container.location ? +1 : 0;
-        const blockAtTop = this._compagnon.dimension.getBlock(Vector3Utils.add(blockPosition, { y: y_add + 1 }));
-        const block = this._compagnon.dimension.getBlock(Vector3Utils.add(blockPosition, { y: y_add }));
-        if (
-          blockAtTop &&
-          blockAtTop.typeId !== MinecraftBlockTypes.Air &&
-          block &&
-          block.typeId == MinecraftBlockTypes.Air
-        ) {
-          SpawnAt = blockPosition;
-          break;
-        }
-      }
     }
 
     if (!SpawnAt) {
-      debugLog("[ShouldPutItemIntoContainer] - No place to spawn the barrel");
+      debugLog("[ShouldPutItemIntoContainer] - No place to access the chest");
       if (warningState.value !== "cant_access") {
         this.tellOwner("message.mycompagnon:compagnon.cant_access_container");
         warningState.value = "cant_access";
@@ -809,6 +805,7 @@ export class CompagnonManager {
     // Verify if container is Empty
     if (inventoryComponent.container!.emptySlotsCount == 0) {
       debugLog("[ShouldPutItemIntoContainer] - Container is not empty");
+      this.crop_farming_behavior_data.chest.isEmptyingInventory = false;
       return false;
     }
 
@@ -844,6 +841,9 @@ export class CompagnonManager {
       if (firstTransferableItemSlot !== null) {
         debugLog("[ShouldPutItemIntoContainer] - putting item  " + firstTransferableItemSlot + " in container");
         this.getInventoryComponent().container.transferItem(firstTransferableItemSlot, inventoryComponent.container!);
+        this.crop_farming_behavior_data.chest.isEmptyingInventory = true;
+      } else {
+        this.crop_farming_behavior_data.chest.isEmptyingInventory = false;
       }
     }
 
@@ -889,7 +889,7 @@ export class CompagnonManager {
     }
     const compagnonContainer = this.getInventoryComponent();
     // Priority 1 : put farmedItemInInventory
-    if (chest.chest && compagnonContainer.container.emptySlotsCount == 0) {
+    if (chest.chest && (compagnonContainer.container.emptySlotsCount == 0 || chest.isEmptyingInventory)) {
       const shouldPutItemInChest = this.shouldPutItemIntoContainer({
         filter: (item) => {
           return !PLANTABLE_SEEDS.has(item.typeId);
@@ -906,7 +906,7 @@ export class CompagnonManager {
     if (!seedExist) {
       debugLog("[ShouldFarmCrop] - No seed found in inventory");
     } else {
-      debugLog("[ShouldFarmCrop] - " + seedExist.slot + " Seed found in inventory : " + seedExist.item.typeId);
+      debugLog("[ShouldFarmCrop] - Seed found in inventory : " + seedExist.item.typeId + " at slot " + seedExist.slot);
     }
 
     // priority 3 : put crop in Empty Farmland
