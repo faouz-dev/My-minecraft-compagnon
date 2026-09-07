@@ -53,6 +53,14 @@ info.mycompagnon:compagnon.behavior_updated=§6Le comportement de votre compagno
 
 ####region Command Messages
 command.mycompagnon:unknown_command=§cCommande inconnue
+command.mycompagnon:name_usage=§eUtilisation : .name <nom>
+command.mycompagnon:name_description=Modifier le nom du compagnon
+command.mycompagnon:behavior_description=Modifier le comportement du compagnon
+command.mycompagnon:behavior_usage=§eUtilisation : .behavior <0|1>\n§70 - Garde du maître\n§71 - Cultiver les cultures
+command.mycompagnon:help_description=Afficher l'aide des commandes
+command.mycompagnon:no_description=Aucune description disponible
+command.mycompagnon:aliases=§bAlias : §r%1
+command.mycompagnon:command_list=§7Liste des commandes : §e%1
 
 ####region  UIMenu Commands
 uimenu_command.mycompagnon:command_not_found_error_message=Il semble que cette option n'est pas disponible

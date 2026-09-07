@@ -3,7 +3,7 @@ import { initCommands } from "../functions/initCommand";
 
 initCommands({
   name: "help",
-  desc: "Help command",
+  desc: "command.mycompagnon:help_description",
   alias: ["h"],
   function: (args, player) => {
     if (args?.length > 0) {
@@ -13,23 +13,24 @@ initCommands({
       );
 
       if (commandInfo) {
-        const aliases = commandInfo.alias?.length
-          ? commandInfo.alias.join(", ")
-          : "none";
+        const aliases = commandInfo.alias?.length ? commandInfo.alias.join(", ") : undefined;
 
-        return player.sendMessage(
-          `§7Command §e${commandInfo.name}§7 :\n` +
-            `§aDescription §r: ${commandInfo.desc}\n` +
-            `§bAliases §r: ${aliases}\n`,
-        );
+        return player.sendMessage({
+          rawtext: [
+            { text: `§7${commandInfo.name}§r\n§a` },
+            { translate: commandInfo.desc ?? "command.mycompagnon:no_description" },
+            { text: "\n§b" },
+            { translate: "command.mycompagnon:aliases", with: [aliases ?? ""] },
+          ],
+        });
       } else {
         return player.sendMessage({ translate: "command.mycompagnon:unknown_command" });
       }
     } else {
-      return player.sendMessage(
-        `§7Commandes list :\n` +
-          COMMANDS.map((c) => `§e${c.name}§7`).join(", "),
-      );
+      return player.sendMessage({
+        translate: "command.mycompagnon:command_list",
+        with: [COMMANDS.map((c) => c.name).join(", ")],
+      });
     }
   },
 });

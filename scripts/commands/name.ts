@@ -3,18 +3,18 @@ import { initCommands } from "../functions/initCommand";
 
 initCommands({
   name: "name",
-  desc: "Modifier le nom du compagnon",
+  desc: "command.mycompagnon:name_description",
   alias: ["n"],
   function: (args, player) => {
     const compagnon = COMPAGNONS.get(player.id);
     if (!compagnon) {
-      player.sendMessage("§cVous n'avez pas de compagnon.");
+      player.sendMessage({ translate: "message.mycompagnon:staff_of_authority.dont_have_compagnon" });
       return;
     }
 
     const name = args.join(" ").trim();
     if (!name) {
-      player.sendMessage("§eUtilisation : .name <nom>");
+      player.sendMessage({ translate: "command.mycompagnon:name_usage" });
       return;
     }
 
