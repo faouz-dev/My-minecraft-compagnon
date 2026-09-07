@@ -10,16 +10,19 @@ registerUIMenuCommand({
       label: "behavior.mycompagnon:default",
       value: "default",
     },
-    {
-      label: "behavior.mycompagnon:follow_player",
-      value: "follow_player",
-    },
+    // {
+    //   label: "behavior.mycompagnon:follow_player",
+    //   value: "follow_player",
+    // },
     {
       label: "behavior.mycompagnon:crop_farming",
       value: "crop_farming",
     },
   ] as { label: string; value: ForcedBehavior }[],
   type: "select",
+  currentValue: function (player: Player, compagnon: CompagnonManager): ForcedBehavior {
+    return compagnon.forced_behavior;
+  },
   callback: function (player: Player, compagnon: CompagnonManager, value: unknown): void {
     compagnon.updateBehavior(value as ForcedBehavior);
   },

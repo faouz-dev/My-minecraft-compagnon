@@ -17,17 +17,21 @@ global.mycompagnon:previous= Précédent
 global.mycompagnon:select= Selectionner
 global.mycompagnon:select_all= Selectionner tout
 global.mycompagnon:deselect_all= Désélectionner tout
+global.mycompagnon:input= Valeur
+global.mycompagnon:input_placeholder= Entrez une valeur
 
 ####region Item
 item.mycompagnon:staff_of_authority.name=Bâton d'autorité
 
 ####region Behavior labels
 behavior.mycompagnon:follow_player= Me suivre uniquement
-behavior.mycompagnon:default=libre de choix
+behavior.mycompagnon:default= Garde du maître
 behavior.mycompagnon:mobs_farming= Chasser les mobs
 behavior.mycompagnon:crop_farming= Cultiver les cultures
 behavior.mycompagnon:menu= Comportement
 behavior.mycompagnon:description= Modifier le comportement du compagnon
+name.mycompagnon:menu= Nommer le compagnon
+name.mycompagnon:description= Choisissez le nom de votre compagnon
 
 
 ####region  CPM_Guider messages

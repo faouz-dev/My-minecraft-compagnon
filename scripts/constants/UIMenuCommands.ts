@@ -6,6 +6,7 @@ interface IMenuCommandBase {
   parent?: IMenuCommand["label"];
   description?: string;
   options?: { label: string; value: string }[];
+  currentValue?: (player: Player, compagnon: CompagnonManager) => string;
 }
 
 interface ISelectMenuCommand extends IMenuCommandBase {

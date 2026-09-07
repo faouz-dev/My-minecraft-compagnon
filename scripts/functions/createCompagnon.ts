@@ -3,6 +3,7 @@ import { spawnSimulatedPlayer } from "@minecraft/server-gametest";
 import { GameMode, Player, Vector3 } from "@minecraft/server";
 import { COMPAGNONS } from "../constants/Compagnons";
 import { COMPAGNON_TYPE } from "../constants/compagnonType";
+import { CompagnonDBManager } from "../class/CompagnonDBManager";
 
 export function createCompagnon(player: Player, location?: Vector3): CompagnonManager {
   const spawnLocation = location ?? player.location;
@@ -13,7 +14,7 @@ export function createCompagnon(player: Player, location?: Vector3): CompagnonMa
   );
   compagnon.addTag(COMPAGNON_TYPE);
 
-  const compagnonManager = new CompagnonManager(compagnon, player);
+  const compagnonManager = new CompagnonManager(compagnon, player, CompagnonDBManager.getCompagnon(player)?.name);
   COMPAGNONS.set(player.id, compagnonManager);
   return compagnonManager;
 }

@@ -1,14 +1,6 @@
-import {
-  ActionFormData,
-  CustomForm,
-  DataDrivenScreenClosedReason,
-  DropdownItemData,
-  MessageFormData,
-  ModalFormData,
-  ObservableNumber,
-} from "@minecraft/server-ui";
+import { ActionFormData, MessageFormData, ModalFormData } from "@minecraft/server-ui";
 import { IMenuCommand, UIMenuCommands } from "../constants/UIMenuCommands";
-import { Player, SetDataFromColorIndexFunction } from "@minecraft/server";
+import { Player } from "@minecraft/server";
 import { debugLog } from "../functions";
 import { CompagnonManager } from "./CompagnonManager";
 
@@ -68,19 +60,34 @@ export class UIMenuCommandsManager {
     const title = command.label;
     const description = command.description;
 
-    if (command.type !== "select" || !command.options) return;
+    const form = new ModalFormData().title({ translate: title });
 
-    const form = new ModalFormData()
-      .title({ translate: title })
-      .label({ translate: description })
-      .divider()
-      .dropdown(
+    if (description) form.label({ translate: description });
+
+    if (command.type === "select") {
+      if (!command.options) return;
+
+      const currentValue = command.currentValue?.(player, compagnon);
+      const currentIndex = command.options.findIndex((option) => option.value === currentValue);
+
+      form.divider().dropdown(
         { translate: "global.mycompagnon:select" },
         command.options.map((option) => ({
           translate: option.label,
-        }))
-      )
-      .submitButton({ translate: "global.mycompagnon:ok" });
+        })),
+        { defaultValueIndex: currentIndex >= 0 ? currentIndex : 0 }
+      );
+    } else if (command.type === "input") {
+      form.textField(
+        { translate: "global.mycompagnon:input" },
+        { translate: "global.mycompagnon:input_placeholder" },
+        { defaultValue: command.currentValue?.(player, compagnon) ?? "" }
+      );
+    } else {
+      return;
+    }
+
+    form.submitButton({ translate: "global.mycompagnon:ok" });
 
     form
       .show(player)
@@ -92,26 +99,20 @@ export class UIMenuCommandsManager {
           return;
         }
 
-        /*
-         * On cherche la valeur numérique plutôt que d'utiliser
-         * directement formValues[0].
-         *
-         * ModalFormData peut maintenant contenir label/header/divider,
-         * dont les valeurs de réponse peuvent être undefined.
-         */
-        const selectedIndex = response.formValues?.find((value): value is number => typeof value === "number");
-
-        if (selectedIndex === undefined) {
-          debugLog(`[UIMenuCommandsManager] ${player.name} no option selected`);
+        if (command.type === "input") {
+          const value = response.formValues?.find((item): item is string => typeof item === "string");
+          if (value === undefined) return;
+          command.callback(player, compagnon, value);
           return;
         }
 
-        const selectedOption = command.options![selectedIndex];
+        const selectedIndex = response.formValues?.find((value): value is number => typeof value === "number");
+        if (selectedIndex === undefined) return;
 
+        const selectedOption = command.options?.[selectedIndex];
         if (!selectedOption) return;
 
         debugLog(`[UIMenuCommandsManager] ${player.name} selected ${selectedIndex}`);
-
         command.callback(player, compagnon, selectedOption.value);
       })
       .catch((error) => {

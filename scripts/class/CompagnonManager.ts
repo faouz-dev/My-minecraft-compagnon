@@ -89,6 +89,7 @@ export class CompagnonManager {
   private behavior: string | null = null;
   private _forced_behavior: ForcedBehavior = "default";
   private shouldSleep: boolean = false;
+  private compagnonName: string;
 
   // targetting properties
   private target_entity: Entity | null = null;
@@ -149,8 +150,10 @@ export class CompagnonManager {
 
   constructor(
     private readonly _compagnon: SimulatedPlayer,
-    private readonly _owner: Player
+    private readonly _owner: Player,
+    name: string = _compagnon.name
   ) {
+    this.compagnonName = name;
     // this.compagnon = compagnon;
     // this.owner = owner;
 
@@ -228,6 +231,14 @@ export class CompagnonManager {
     });
     this._owner.sendMessage({ translate: "info.mycompagnon:compagnon.behavior_updated" });
     debugLog(`Compagnon behavior updated to ${behavior}`);
+  }
+
+  updateName(name: string) {
+    const trimmedName = name.trim();
+    if (!trimmedName) return;
+
+    this.compagnonName = trimmedName;
+    CompagnonDBManager.updateCompagnonData(this._owner, { name: trimmedName });
   }
 
   /**
@@ -340,7 +351,7 @@ export class CompagnonManager {
     const hearts = Math.round(health / 2);
 
     this._compagnon.nameTag =
-      `§l§f${this.compagnon.name}§r\n` + `§c❤ §f${hearts} §7HP§r\n` + `§8✦ owner : §f${this._owner.name}`;
+      `§l§f${this.compagnonName}§r\n` + `§c❤ §f${hearts} §7HP§r\n` + `§8✦ owner : §f${this._owner.name}`;
   }
 
   /**
