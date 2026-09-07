@@ -1,12 +1,12 @@
-import { Block } from "@minecraft/server";
+import { Block, Player } from "@minecraft/server";
 import { MinecraftBlockTypes } from "@minecraft/vanilla-data";
 
-export function lootAndBreakBlock(block: Block): boolean {
+export function lootAndBreakBlock(block: Block, player: Player): boolean {
   const { x, y, z } = block.location;
   const coordinates = `${x} ${y} ${z}`;
 
   try {
-    block.dimension.runCommand(`loot spawn ${coordinates} mine ${coordinates}`);
+    player.runCommand(`loot spawn ${coordinates} mine ${coordinates} mainhand`);
     block.dimension.setBlockType(block.location, MinecraftBlockTypes.Air);
     return true;
   } catch {

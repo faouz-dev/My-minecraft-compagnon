@@ -981,6 +981,11 @@ export class CompagnonManager {
   private shouldFarmCropBehavior(): boolean {
     const { area, chest } = this.crop_farming_behavior_data;
 
+    if (!chest.chest && chest.chestPosition && chest.dimension) {
+      const savedChest = world.getDimension(chest.dimension).getBlock(chest.chestPosition);
+      if (savedChest?.typeId === MinecraftBlockTypes.Chest) chest.chest = savedChest;
+    }
+
     // Case farming area in zone
     if (!area || !area.dimension || !area.waypoints) {
       if (!area!.warnNoAreaProvided) {
@@ -1110,7 +1115,7 @@ export class CompagnonManager {
           this._compagnon.stopMoving();
           this.compagnon.lookAtBlock(block, LookDuration.Instant);
           this.compagnon.selectedSlotIndex = 3;
-          const success = lootAndBreakBlock(block);
+          const success = lootAndBreakBlock(block, this._compagnon);
           if (success) {
             debugLog("[ShouldFarmCrop] - Crop Recolted");
           }
