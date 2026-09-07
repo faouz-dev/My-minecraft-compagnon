@@ -74,6 +74,7 @@ export class CompagnonGuiderCustomComponent implements ItemCustomComponent {
         if (existCompagnon) {
           const CompagnonManager = existCompagnon;
           if (CompagnonManager.isSelectingFarmArea(block)) break;
+          if (CompagnonManager.startClearInventory(block)) break;
         }
 
         break;

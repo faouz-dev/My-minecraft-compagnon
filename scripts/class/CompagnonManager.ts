@@ -58,7 +58,7 @@ import {
 import { showSelectedArea } from "../functions/showSelectedArea";
 import { lootAndBreakBlock } from "../functions/lootAndBreakBlock";
 
-export type ForcedBehavior = "default" | "follow_player" | "mobs_farming" | "crop_farming";
+export type ForcedBehavior = "default" | "follow_player" | "mobs_farming" | "crop_farming" | "clear_inventory";
 
 type ClearOption = {
   clear?: boolean;
@@ -142,6 +142,11 @@ export class CompagnonManager {
     },
   };
 
+  private clear_inventory_behavior_data: {
+    chest: Block | null;
+    warningState: ContainerWarningState;
+  } = { chest: null, warningState: { value: "none" } };
+
   private is_selecting_farm_area_datas: {
     p1: Vector3 | null;
     p1SelectedAt: number | null;
@@ -216,7 +221,7 @@ export class CompagnonManager {
   }
 
   private restorePersistentData(data: CompagnonProperty) {
-    this._forced_behavior = data.forced_behavior ?? "default";
+    this._forced_behavior = data.forced_behavior === "clear_inventory" ? "default" : data.forced_behavior ?? "default";
 
     if (data.location && data.dimension) {
       try {
@@ -310,7 +315,7 @@ export class CompagnonManager {
       name: this.compagnonName,
       health: this._compagnon.getComponent(EntityComponentTypes.Health)?.currentValue,
       hunger: this._compagnon.getComponent(EntityComponentTypes.Hunger)?.currentValue,
-      forced_behavior: this._forced_behavior,
+      forced_behavior: this._forced_behavior === "clear_inventory" ? "default" : this._forced_behavior,
       location: this._compagnon.location,
       dimension: this._compagnon.dimension.id,
       cropFarmingData,
@@ -529,6 +534,15 @@ export class CompagnonManager {
       }
     }
 
+    return true;
+  }
+
+  public startClearInventory(block: Block): boolean {
+    if (this._forced_behavior === "crop_farming" || block.typeId !== MinecraftBlockTypes.Chest) return false;
+
+    this.clear_inventory_behavior_data.chest = block;
+    this.clear_inventory_behavior_data.warningState = { value: "none" };
+    this._forced_behavior = "clear_inventory";
     return true;
   }
 
@@ -933,7 +947,9 @@ export class CompagnonManager {
     // Verify if container is Empty
     if (inventoryComponent.container!.emptySlotsCount == 0) {
       debugLog("[ShouldPutItemIntoContainer] - Container is not empty");
-      this.crop_farming_behavior_data.chest.isEmptyingInventory = false;
+      this._compagnon.stopInteracting();
+      if (props.clear) this.finishClearInventoryBehavior();
+      else this.crop_farming_behavior_data.chest.isEmptyingInventory = false;
       return false;
     }
 
@@ -950,6 +966,8 @@ export class CompagnonManager {
       if (firstItem !== undefined) {
         debugLog("[ShouldPutItemIntoContainer] - putting item  " + firstItem + " in container");
         this.getInventoryComponent().container.transferItem(firstItem, inventoryComponent.container!);
+      } else {
+        this.finishClearInventoryBehavior();
       }
     } else {
       let firstTransferableItemSlot: number | null = null;
@@ -972,10 +990,34 @@ export class CompagnonManager {
         this.crop_farming_behavior_data.chest.isEmptyingInventory = true;
       } else {
         this.crop_farming_behavior_data.chest.isEmptyingInventory = false;
+        this._compagnon.stopInteracting();
       }
     }
 
     return true;
+  }
+
+  private clearInventoryBehavior(): boolean {
+    const chest = this.clear_inventory_behavior_data.chest;
+    if (!chest || !chest.isValid || chest.typeId !== MinecraftBlockTypes.Chest) {
+      this.finishClearInventoryBehavior();
+      return false;
+    }
+
+    this.shouldPutItemIntoContainer({
+      container: chest,
+      clear: true,
+      warningState: this.clear_inventory_behavior_data.warningState,
+    });
+    return true;
+  }
+
+  private finishClearInventoryBehavior() {
+    this._compagnon.stopInteracting();
+    this.clear_inventory_behavior_data.chest = null;
+    this.clear_inventory_behavior_data.warningState = { value: "none" };
+    this._forced_behavior = "default";
+    this.savePersistentData();
   }
 
   private shouldFarmCropBehavior(): boolean {
@@ -1278,6 +1320,10 @@ export class CompagnonManager {
         break;
       case "crop_farming":
         this.cropFarmingBehavior();
+        break;
+      case "clear_inventory":
+        this.clearInventoryBehavior();
+        break;
     }
   }
 }
