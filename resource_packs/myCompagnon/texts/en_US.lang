@@ -1,0 +1,65 @@
+####region Pack information
+pack.name=My Compagnon
+pack.description=A companion to help you in your survival world.
+
+####region Global
+global.mycompagnon:compagnon_menu=Companion menu
+global.mycompagnon:error=Error
+global.mycompagnon:close=Close
+global.mycompagnon:cancel=Cancel
+global.mycompagnon:confirm=Confirm
+global.mycompagnon:yes=Yes
+global.mycompagnon:no=No
+global.mycompagnon:ok=OK
+global.mycompagnon:back=Back
+global.mycompagnon:next=Next
+global.mycompagnon:previous=Previous
+global.mycompagnon:select=Select
+global.mycompagnon:select_all=Select all
+global.mycompagnon:deselect_all=Deselect all
+global.mycompagnon:input=Value
+global.mycompagnon:input_placeholder=Enter a value
+
+####region Item
+item.mycompagnon:staff_of_authority.name=Staff of Authority
+
+####region Behavior labels
+behavior.mycompagnon:follow_player=Follow me only
+behavior.mycompagnon:default=Guard the owner
+behavior.mycompagnon:mobs_farming=Hunt mobs
+behavior.mycompagnon:crop_farming=Farm crops
+behavior.mycompagnon:menu=Behavior
+behavior.mycompagnon:description=Change the companion's behavior
+name.mycompagnon:menu=Name the companion
+name.mycompagnon:description=Choose your companion's name
+
+####region CPM_Guider messages
+message.mycompagnon:staff_of_authority.dont_have_compagnon=§cYou do not have a companion. Summon one to get started.
+message.mycompagnon:staff_of_authority.only_use_on_own_compagnon=§cYou only have authority over your own companion.
+
+###region Companion messages
+message.mycompagnon:compagnon.cant_open_container=I cannot access this container.
+message.mycompagnon:compagnon.cant_access_container=I cannot access this container.
+message.mycompagnon:compagnon.no_bed_found=You need to build a bed for your companion.
+message.mycompagnon:compagnon.already_have_compagnon=You already have a companion.
+message.mycompagnon:compagnon.no_farm_area_selected=You have not selected a farming area yet. Use the Staff of Authority to give me the two points that define it.
+message.mycompagnon:compagnon.no_farm_chest_selected=You have not selected a chest for me to store crops and seeds. If my inventory is full, I will not be able to farm.
+message.mycompagnon:compagnon.no_farmland_in_area_selected=I found no farmland in the selected area. Please select a new area.
+message.mycompagnon:compagnon.noticed_the_chest=All right, I will store my loot in the chest you selected.
+
+####region Information messages
+info.mycompagnon:compagnon.behavior_updated=§6Your companion's behavior has been updated.
+
+####region Command messages
+command.mycompagnon:unknown_command=§cUnknown command
+command.mycompagnon:name_usage=§eUsage: .name <name>
+command.mycompagnon:name_description=Change the companion's name
+command.mycompagnon:behavior_description=Change the companion's behavior
+command.mycompagnon:behavior_usage=§eUsage: .behavior <0|1>\n§70 - Guard the owner\n§71 - Farm crops
+command.mycompagnon:help_description=Display command help
+command.mycompagnon:no_description=No description available
+command.mycompagnon:aliases=§bAliases: §r%1
+command.mycompagnon:command_list=§7Command list: §e%1
+
+####region UI Menu Commands
+uimenu_command.mycompagnon:command_not_found_error_message=It seems that this option is not available

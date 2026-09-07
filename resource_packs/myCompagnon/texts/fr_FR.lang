@@ -1,6 +1,6 @@
-####region Pack informations
-pack.name=My Compagonon
-pack.description=Un compagnon pour vous epauler dans votre survie.
+####region Informations du pack
+pack.name=My Compagnon
+pack.description=Un compagnon pour vous épauler dans votre survie.
 
 ####region Global
 global.mycompagnon:compagnon_menu= Menu du compagnon
@@ -14,8 +14,8 @@ global.mycompagnon:ok= Ok
 global.mycompagnon:back= Retour
 global.mycompagnon:next= Suivant
 global.mycompagnon:previous= Précédent
-global.mycompagnon:select= Selectionner
-global.mycompagnon:select_all= Selectionner tout
+global.mycompagnon:select= Sélectionner
+global.mycompagnon:select_all= Sélectionner tout
 global.mycompagnon:deselect_all= Désélectionner tout
 global.mycompagnon:input= Valeur
 global.mycompagnon:input_placeholder= Entrez une valeur
@@ -35,8 +35,8 @@ name.mycompagnon:description= Choisissez le nom de votre compagnon
 
 
 ####region  CPM_Guider messages
-message.mycompagnon:staff_of_authority.dont_have_compagnon=§cVous n'avez pas de compagnon , veillez en invoquer un pour commencer
-message.mycompagnon:staff_of_authority.only_use_on_own_compagnon=§cVous n'avez d'autorité  que sur votre compagnon
+message.mycompagnon:staff_of_authority.dont_have_compagnon=§cVous n'avez pas de compagnon, veuillez en invoquer un pour commencer.
+message.mycompagnon:staff_of_authority.only_use_on_own_compagnon=§cVous n'avez autorité que sur votre compagnon.
 
 ###region  Compagnon Message
 message.mycompagnon:compagnon.cant_open_container=Je ne peux pas accéder à ce conteneur.
@@ -46,7 +46,7 @@ message.mycompagnon:compagnon.already_have_compagnon=Tu as déjà un compagnon.
 message.mycompagnon:compagnon.no_farm_area_selected=Tu ne m'as pas encore indiqué de zone de culture. Utilise le bâton d'autorité pour me donner les deux points qui la délimitent.
 message.mycompagnon:compagnon.no_farm_chest_selected=Tu ne m'as pas encore indiqué de coffre pour déposer mes récoltes et mes graines. Si mon inventaire est plein, je ne pourrai plus cultiver.
 message.mycompagnon:compagnon.no_farmland_in_area_selected=Je n'ai trouvé aucune terre labourée dans la zone sélectionnée. Indique-moi une nouvelle zone.
-message.mycompagnon:compagnon.noticed_the_chest=D'accord je vais deposer mes loot dans le coffre que vous avez selectionne
+message.mycompagnon:compagnon.noticed_the_chest=D'accord, je vais déposer mon butin dans le coffre que vous avez sélectionné.
 
 ####region  Informations Message
 info.mycompagnon:compagnon.behavior_updated=§6Le comportement de votre compagnon a été mis à jour
