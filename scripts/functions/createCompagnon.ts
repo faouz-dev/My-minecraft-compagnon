@@ -5,16 +5,17 @@ import { COMPAGNONS } from "../constants/Compagnons";
 import { COMPAGNON_TYPE } from "../constants/compagnonType";
 import { CompagnonDBManager } from "../class/CompagnonDBManager";
 
-export function createCompagnon(player: Player, location?: Vector3): CompagnonManager {
+export function createCompagnon(player: Player, location?: Vector3, name?: string): CompagnonManager {
   const spawnLocation = location ?? player.location;
+  const compagnonName = name ?? CompagnonDBManager.getCompagnon(player)?.name ?? "Supremus Bot";
   const compagnon = spawnSimulatedPlayer(
     { dimension: player.dimension, ...spawnLocation },
-    "Supremus Bot",
+    compagnonName,
     GameMode.Survival
   );
   compagnon.addTag(COMPAGNON_TYPE);
 
-  const compagnonManager = new CompagnonManager(compagnon, player, CompagnonDBManager.getCompagnon(player)?.name);
+  const compagnonManager = new CompagnonManager(compagnon, player, compagnonName);
   COMPAGNONS.set(player.id, compagnonManager);
   return compagnonManager;
 }
