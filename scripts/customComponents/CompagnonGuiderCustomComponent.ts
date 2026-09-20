@@ -1,21 +1,27 @@
-import type {
-  Block,
-  CustomComponentParameters,
-  Entity,
-  ItemComponentUseEvent,
-  ItemComponentUseOnEvent,
-  ItemCustomComponent,
-  Player,
+import {
+  system,
+  type CustomComponentParameters,
+  type ItemComponentUseEvent,
+  type ItemComponentUseOnEvent,
+  type ItemCustomComponent,
+  type Player,
 } from "@minecraft/server";
 import { COMPAGNON_TYPE } from "../constants/compagnonType";
-import { Vector3Utils } from "@minecraft/math";
 import { COMPAGNONS } from "../constants";
 import { debugLog } from "../functions";
 import { UIMenuCommandsManager } from "../class/UIMenuCommandsManager";
 
 export class CompagnonGuiderCustomComponent implements ItemCustomComponent {
+  /**
+   * Stores the tick on which the staff was used directly on a block.
+   * `onUse` can also fire for the same interaction, so entity handling is
+   * deferred by one tick and ignored when a block interaction was recorded.
+   */
+  private readonly lastBlockUseTick = new Map<string, number>();
+
   constructor() {
     this.onUse = this.onUse.bind(this);
+    this.onUseOn = this.onUseOn.bind(this);
   }
 
   getCompagnonsOrPreventIfDontHave(player: Player) {
@@ -27,60 +33,64 @@ export class CompagnonGuiderCustomComponent implements ItemCustomComponent {
     return haveCompagnon;
   }
 
-  onUse(event: ItemComponentUseEvent, param: CustomComponentParameters) {
+  onUse(event: ItemComponentUseEvent, _param: CustomComponentParameters) {
     const { source } = event;
+    const useTick = system.currentTick;
 
-    const useOnEntity = source.getEntitiesFromViewDirection({
-      tags: [COMPAGNON_TYPE],
-      maxDistance: 5,
+    // Delay entity handling by one tick. If the same use was actually made on
+    // a block, onUseOn records it first and this callback safely does nothing.
+    system.run(() => {
+      const lastBlockTick = this.lastBlockUseTick.get(source.id);
+      if (lastBlockTick !== undefined && lastBlockTick >= useTick) {
+        return;
+      }
+
+      const useOnEntity = source.getEntitiesFromViewDirection({
+        tags: [COMPAGNON_TYPE],
+        maxDistance: 5,
+      });
+
+      if (useOnEntity.length === 0) {
+        debugLog("[CompagnonGuiderCustomComponent] No entity target");
+        return;
+      }
+
+      const entity = useOnEntity[0].entity;
+      debugLog("[CompagnonGuiderCustomComponent] Using on an entity : " + entity.id);
+
+      const compagnonbehavior = this.getCompagnonsOrPreventIfDontHave(source);
+      if (!compagnonbehavior) return;
+
+      const compagnon = compagnonbehavior;
+      const isHisCompagnon = entity.id === compagnon.compagnon.id;
+
+      if (!isHisCompagnon) {
+        debugLog("[CompagnonGuiderCustomComponent] Not his compagnon");
+        source.sendMessage({
+          translate: "message.mycompagnon:staff_of_authority.only_use_on_own_compagnon",
+        });
+        return;
+      }
+
+      debugLog("[CompagnonGuiderCustomComponent] Using on his compagnon");
+      UIMenuCommandsManager.openMenu(source, compagnon);
     });
+  }
 
-    const useOnBlock = source.getBlockFromViewDirection({ maxDistance: 5 });
+  onUseOn(event: ItemComponentUseOnEvent) {
+    const { source, block } = event;
 
-    let usedOn: "block" | "entity" | undefined;
-    const entityDistance = useOnEntity.length > 0 ? useOnEntity[0].distance : undefined;
-    const blockDistance = useOnBlock ? Vector3Utils.distance(useOnBlock.block.location, source.location) : undefined;
+    // Important: event.block is the exact block that received the item use.
+    // This avoids the old view-direction raycast selecting the block below or
+    // behind a non-full block such as a chest.
+    this.lastBlockUseTick.set(source.id, system.currentTick);
 
-    if (entityDistance && ((blockDistance && entityDistance < blockDistance) || !blockDistance)) {
-      usedOn = "entity";
-    } else if (blockDistance) {
-      usedOn = "block";
-    }
+    debugLog("[CompagnonGuiderCustomComponent] Using directly on block : " + block.typeId);
 
-    switch (usedOn) {
-      case "entity":
-        const entity = useOnEntity[0].entity;
-        // TODO: Use on entity
-        debugLog("[CompagnonGuiderCustomComponent] Using on an entity : " + entity.id);
-        const compagnonbehavior = this.getCompagnonsOrPreventIfDontHave(source);
-        if (compagnonbehavior) {
-          const compagnon = compagnonbehavior;
-          const isHisCompagnon = entity.id === compagnon.compagnon.id;
-          if (!isHisCompagnon) {
-            debugLog("[CompagnonGuiderCustomComponent] Not his compagnon");
-            return source.sendMessage({
-              translate: "message.mycompagnon:staff_of_authority.only_use_on_own_compagnon",
-            });
-          }
-          debugLog("[CompagnonGuiderCustomComponent] Using on his compagnon");
-          UIMenuCommandsManager.openMenu(source, compagnon);
-        }
-        break;
-      case "block":
-        // TODO: Use on block
-        const block = useOnBlock!.block;
-        debugLog("[CompagnonGuiderCustomComponent] Using on a block : " + block.typeId);
-        const existCompagnon = this.getCompagnonsOrPreventIfDontHave(source);
-        if (existCompagnon) {
-          const CompagnonManager = existCompagnon;
-          if (CompagnonManager.isSelectingFarmArea(block)) break;
-          if (CompagnonManager.startClearInventory(block)) break;
-        }
+    const existCompagnon = this.getCompagnonsOrPreventIfDontHave(source);
+    if (!existCompagnon) return;
 
-        break;
-      default:
-        debugLog("[CompagnonGuiderCustomComponent] No target");
-        break;
-    }
+    if (existCompagnon.isSelectingFarmArea(block)) return;
+    if (existCompagnon.startClearInventory(block)) return;
   }
 }
